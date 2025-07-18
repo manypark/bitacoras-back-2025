@@ -29,9 +29,11 @@ export class CreateAuthDto {
     active:boolean;
 
     @IsDate()
+    @IsOptional()
     lastLogin:Date;
 
     @IsString()
+    @IsOptional()
     avatarUrl:string;
     
 }

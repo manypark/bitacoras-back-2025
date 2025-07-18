@@ -30,8 +30,20 @@ export class User extends CreateAndUpdateAt {
     avatarUrl:string;
 
     @BeforeInsert()
+    saveDateTime() {
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
+        this.lastLogin = new Date();
+    }
+
+    @BeforeInsert()
     checkFieldsBeforeInsert() {
         this.email = this.email.toLowerCase().trim();
+    }
+    
+    @BeforeUpdate()
+    updateDateTime() {
+        this.updatedAt = new Date();
     }
     
     @BeforeUpdate()
