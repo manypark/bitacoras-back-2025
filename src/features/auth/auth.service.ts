@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { ResponseService } from '../shared/interceptors';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto } from './dto';
+import { JwtService } from '@nestjs/jwt';
 
 
 @Injectable()
@@ -14,8 +15,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)      
     private readonly userRepository:Repository<User>,
-
     private readonly responseService:ResponseService,
+    private readonly jwtServices:JwtService,
   ) {}
   
   async signUp(createAuthDto: CreateAuthDto) {
@@ -37,8 +38,30 @@ export class AuthService {
     }
   }
 
-  async signIn(createAuthDto: LoginUserDto) {
-    return 'This action adds a new auth';
+  async signIn({ email, password } : LoginUserDto) {
+
+    const loginUser = await this.userRepository.findOne({
+      where : { email },
+      select: { email : true, password : true, idUser: true },
+    });
+
+    if( !loginUser ) return this.responseService.error('Usuario no encontrado');
+
+    if( !bcrypt.compareSync(password, loginUser.password) ) return this.responseService.error('Usuario o contrasena no coinciden');
+
+    const data = {
+      ...loginUser,
+      token: this.getJwtToken( loginUser.idUser ),
+    };
+
+    return this.responseService.success('Usuario loguedo correctamente', data, 202);
+  }
+
+  private getJwtToken( idUser:number ):string {
+
+    const token = this.jwtServices.sign({ idUser : idUser });
+
+    return token;
   }
 
   findAll() {
