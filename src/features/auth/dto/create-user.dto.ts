@@ -3,12 +3,12 @@ import { IsBoolean, IsDate, IsEmail, IsOptional, IsString, Matches, MaxLength, M
 export class CreateAuthDto {
 
     @IsString()
-    @MinLength(6)
+    @MinLength(4)
     @MaxLength(50)
     firstName:string;
 
     @IsString()
-    @MinLength(6)
+    @MinLength(4)
     @MaxLength(50)
     lastName:string;
     
