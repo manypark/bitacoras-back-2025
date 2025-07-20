@@ -24,16 +24,13 @@ export class AuthService {
   async signUp(createAuthDto: CreateAuthDto) {
     try {
 
-      const { password, ...userData } = createAuthDto;
-
-      const newUser = this.userRepository.create({
-        ...userData,
-        password: bcrypt.hashSync(password, 10),
-      });
+      const newUser = this.userRepository.create({ ...createAuthDto });
 
       await this.userRepository.save( newUser );
 
-      return this.responseService.success('Usuario creado correctamente', userData, 201);
+      console.log(newUser);
+
+      return this.responseService.success('Usuario creado correctamente', newUser, 201);
 
     } catch (error) {
       return this.responseService.error(error.detail, null, 500);
@@ -43,22 +40,33 @@ export class AuthService {
   // ####################### || User Login || #######################
   async signIn({ email, password } : LoginUserDto) {
 
-    const loginUser = await this.userRepository.findOne({
-      where : { email },
-      select: { email : true, password : true, idUser: true },
-    });
+    try {
+      
+      const loginUser = await this.userRepository.findOne({
+        where : { email },
+        select: { email : true, password : true, idUser: true },
+      });
+  
+      if( !loginUser ) return this.responseService.error('Usuario no encontrado', null, 404);
+  
+      if( !bcrypt.compareSync(password, loginUser.password!) ) 
+        return this.responseService.error('Usuario o contrasena no coinciden', null, 401);
 
-    if( !loginUser ) return this.responseService.error('Usuario no encontrado', null, 404);
+      delete loginUser.password;
 
-    if( !bcrypt.compareSync(password, loginUser.password) ) 
-      return this.responseService.error('Usuario o contrasena no coinciden', null, 401);
+      const data = {
+        ...loginUser,
+        token: this.getJwtToken( loginUser.idUser ),
+      };
+      
+      await this.update( loginUser.idUser, { lastLogin: new Date() } );
+  
+      return this.responseService.success('Usuario loguedo correctamente', data, 202);
 
-    const data = {
-      ...loginUser,
-      token: this.getJwtToken( loginUser.idUser ),
-    };
+    } catch (error) {
+      return this.responseService.error(error, null, 500);
+    }
 
-    return this.responseService.success('Usuario loguedo correctamente', data, 202);
   }
 
 // ####################### || Generate JWT || #######################  
@@ -73,10 +81,21 @@ export class AuthService {
   async findAll(  { limit = 10, offset = 0 } : PaginationDto ) {
     try {
 
-      const users = await this.userRepository.find({
+      let users = await this.userRepository.find({
         take      : limit, 
         skip      : offset,
-        where     : { active:true }
+        where     : { active:true },
+        select    : { 
+          idUser:true,
+          firstName:true,
+          lastName:true,
+          email:true,
+          active:true,
+          lastLogin:true,
+          avatarUrl:true,
+          createdAt:true,
+          updatedAt:true
+        }
       });
 
       return this.responseService.success('Usuarios cargados correctamente', users, 202);
@@ -88,9 +107,15 @@ export class AuthService {
 
 // ####################### || Get one user || #######################
   async findOne( idUser:number) {
+
      try {
 
-      const user = await this.userRepository.findOneBy({ idUser, active:true });
+      const user = await this.userRepository.findOneBy({ 
+        idUser, 
+        active:true,
+      });
+
+      delete user?.password;
 
       if( !user ) return this.responseService.error('Usuario no encontrado', null, 404);
 
@@ -102,7 +127,7 @@ export class AuthService {
   }
 
 // ####################### || Update one user || #######################
-  async update( idUser : number, updateUser : UpdateAuthDto) {
+  async update( idUser : number, updateUser : UpdateAuthDto ) {
 
     const user = await this.userRepository.preload({ idUser:idUser, ...updateUser });
 
@@ -113,16 +138,13 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      
-       const newUser = this.userRepository.create({
-        ...user,
-        password: bcrypt.hashSync(user.password, 10),
-      });
 
-      await queryRunner.manager.save(newUser);
+      await queryRunner.manager.save(user);
       await queryRunner.commitTransaction();
 
-      return this.responseService.success('Usuario actualizado correctamente', newUser, 202);
+      delete user.password;
+      
+      return this.responseService.success('Usuario actualizado correctamente', user, 202);
       
     } catch (error) {
       

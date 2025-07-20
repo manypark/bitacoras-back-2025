@@ -1,3 +1,4 @@
+import * as bcrypt from 'bcrypt';
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 import { CreateAndUpdateAt } from "src/features/shared";
@@ -17,8 +18,8 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { unique:true })
     email:string;
 
-    @Column('text', { unique:true, select:false })
-    password:string;
+    @Column('text', { unique:true })
+    password?:string;
 
     @Column('bool', { default:true })
     active:boolean;
@@ -35,20 +36,24 @@ export class User extends CreateAndUpdateAt {
         this.updatedAt = new Date();
         this.lastLogin = new Date();
     }
-
-    @BeforeInsert()
-    checkFieldsBeforeInsert() {
-        this.email = this.email.toLowerCase().trim();
-    }
     
     @BeforeUpdate()
     updateDateTime() {
         this.updatedAt = new Date();
     }
     
+    @BeforeInsert()
     @BeforeUpdate()
     checkFieldsBeforeUpdate() {
         this.email = this.email.toLowerCase().trim();
+    }
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    async hashPassword() {
+        if (this.password && !this.password.startsWith('$2b$')) {
+        this.password = await bcrypt.hash(this.password, 10);
+        }
     }
     
 }

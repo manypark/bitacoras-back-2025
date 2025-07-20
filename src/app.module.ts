@@ -18,11 +18,13 @@ import { AuthModule } from './features/auth/auth.module';
       autoLoadEntities: true,
       synchronize: true,
       ssl: true,
+      useUTC:true,
       extra: {
         ssl: {
           rejectUnauthorized: true,
           ca: fs.readFileSync( __dirname + process.env.DB_SSL_CA_PATH ).toString(),
-        }
+        },
+        options: '-c timezone=UTC',
       }
     }),
     AuthModule,

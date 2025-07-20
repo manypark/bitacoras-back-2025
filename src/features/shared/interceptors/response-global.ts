@@ -16,7 +16,7 @@ export class ResponseService {
       status: false,
       statusCode,
       message,
-      data : data ?? {}
+      data : data ?? null
     };
   }
 }
