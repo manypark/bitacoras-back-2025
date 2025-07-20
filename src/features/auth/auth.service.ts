@@ -28,8 +28,6 @@ export class AuthService {
 
       await this.userRepository.save( newUser );
 
-      console.log(newUser);
-
       return this.responseService.success('Usuario creado correctamente', newUser, 201);
 
     } catch (error) {
@@ -158,7 +156,14 @@ export class AuthService {
 
 // ####################### || Delete user || #######################  
   async remove(id: number) {
-    return `This action removes a #${id} auth`;
+    try {
+      await this.update(id, { active : false } );
+
+      return this.responseService.success('Usuario eliminado correctamente', null, 202);
+    } catch (error) {
+      console.log(error);
+      return this.responseService.error(error.detail, null, 500);
+    }
   }
 
 }
