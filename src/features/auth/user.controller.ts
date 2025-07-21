@@ -3,7 +3,6 @@ import { Controller, Get, Body, Patch, Param, Delete, Query } from '@nestjs/comm
 import { Auth } from './decorators';
 import { AuthService } from './auth.service';
 import { PaginationDto, UpdateAuthDto } from './dto';
-import { ValidRoles } from './interfaces/valid-roles';
 
 @Controller('users')
 export class UserController {

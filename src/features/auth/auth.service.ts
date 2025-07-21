@@ -6,7 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from './entities/user.entity';
 import { ResponseService } from '../shared/interceptors';
-import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
+import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto, UserResponseDto } from './dto';
+import { plainToInstance } from 'class-transformer';
 
 
 @Injectable()
@@ -41,11 +42,11 @@ export class AuthService {
     try {
       
       const loginUser = await this.userRepository.findOne({
-        where : { email },
+        where : { email, active:true },
         select: { email : true, password : true, idUser: true },
       });
   
-      if( !loginUser ) return this.responseService.error('Usuario no encontrado', null, 404);
+      if( !loginUser ) return this.responseService.error('Usuario no encontrado o desactivado', null, 404);
   
       if( !bcrypt.compareSync(password, loginUser.password!) ) 
         return this.responseService.error('Usuario o contrasena no coinciden', null, 401);
@@ -79,7 +80,7 @@ export class AuthService {
   async findAll(  { limit = 10, offset = 0 } : PaginationDto ) {
     try {
 
-      let users = await this.userRepository.find({
+      const users = await this.userRepository.find({
         take      : limit, 
         skip      : offset,
         where     : { active:true },
@@ -117,7 +118,37 @@ export class AuthService {
 
       if( !user ) return this.responseService.error('Usuario no encontrado', null, 404);
 
-      return this.responseService.success('Usuario cargado correctamente', user, 202);
+      const rolesList = Array.from(
+      new Map(
+        user.menuRoles.map((mr) => [
+          mr.idRoles.idRoles, // clave única
+          { idRoles: mr.idRoles.idRoles, name: mr.idRoles.name },
+        ]),
+      ).values(),
+    );
+
+      const userResponse = plainToInstance(UserResponseDto, {
+      idUser: user.idUser,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      active : user.active,
+      avatarUrl: user.avatarUrl,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      menuList: user.menuRoles.map((mr) => ({
+        menu: {
+          idMenu: mr.idMenu.idMenu,
+          name: mr.idMenu.name,
+          route: mr.idMenu.route,
+          icon: mr.idMenu.icon,
+        },
+      })),
+      rolesList,
+    });
+
+      return this.responseService.success('Usuario cargado correctamente', userResponse, 202);
       
     } catch (error) {
      return this.responseService.error(error);
@@ -161,7 +192,6 @@ export class AuthService {
 
       return this.responseService.success('Usuario eliminado correctamente', null, 202);
     } catch (error) {
-      console.log(error);
       return this.responseService.error(error.detail, null, 500);
     }
   }

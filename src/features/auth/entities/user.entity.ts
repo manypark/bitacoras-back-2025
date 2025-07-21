@@ -1,7 +1,9 @@
 import * as bcrypt from 'bcrypt';
-import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 import { CreateAndUpdateAt } from "src/features/shared";
+import { Role } from 'src/features/roles/entities/role.entity';
+import { MenuRoles } from 'src/features/menu-roles/entities/menu-role.entity';
 
 @Entity()
 export class User extends CreateAndUpdateAt {
@@ -30,6 +32,13 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { default: '' } )
     avatarUrl:string;
 
+    @OneToMany(
+        () => MenuRoles,
+        (menuRol) => menuRol.idUser,
+        { eager:true }
+    )
+    menuRoles:MenuRoles[];
+
     @BeforeInsert()
     saveDateTime() {
         this.createdAt = new Date();
@@ -52,7 +61,7 @@ export class User extends CreateAndUpdateAt {
     @BeforeUpdate()
     async hashPassword() {
         if (this.password && !this.password.startsWith('$2b$')) {
-        this.password = await bcrypt.hash(this.password, 10);
+            this.password = await bcrypt.hash(this.password, 10);
         }
     }
     
