@@ -54,7 +54,7 @@ export class AuthService {
 
       const data = {
         ...loginUser,
-        token: this.getJwtToken( loginUser.idUser ),
+        token: this.getJwtToken( loginUser.email ),
       };
       
       await this.update( loginUser.idUser, { lastLogin: new Date() } );
@@ -68,9 +68,9 @@ export class AuthService {
   }
 
 // ####################### || Generate JWT || #######################  
-  private getJwtToken( idUser:number ):string {
+  private getJwtToken( email:string ):string {
 
-    const token = this.jwtServices.sign({ idUser : idUser });
+    const token = this.jwtServices.sign({ email });
 
     return token;
   }
@@ -83,7 +83,7 @@ export class AuthService {
         take      : limit, 
         skip      : offset,
         where     : { active:true },
-        select    : { 
+        select    : {
           idUser:true,
           firstName:true,
           lastName:true,

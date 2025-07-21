@@ -12,7 +12,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ResponseService } from '../shared/interceptors';
 
 @Module({
-  controllers : [AuthController, UserController],
+  controllers : [
+    AuthController, 
+    UserController,
+  ],
   providers   : [
     AuthService, 
     JwtStrategy,
@@ -26,7 +29,7 @@ import { ResponseService } from '../shared/interceptors';
       inject    : [ ConfigService ],
       useFactory: ( configServices:ConfigService ) => ({
           secret      :  configServices.get('JWT_SECRET'),
-          signOptions : { expiresIn: '2h' },
+          signOptions : { expiresIn: '5h' },
       })
     }),
     ConfigModule,

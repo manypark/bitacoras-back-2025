@@ -6,7 +6,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
 
 import { User } from "../entities/user.entity";
-import { ResponseService } from "src/features/shared/interceptors";
+import { CustomUnauthorizedException } from "../expections/custom-exception";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,7 +15,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         @InjectRepository(User) 
         private readonly userRepository:Repository<User>,
         configServices:ConfigService,
-        private readonly responseService:ResponseService,
     ) {
         super({
             jwtFromRequest  : ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -23,13 +22,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate( idUser : number ) {
+    async validate( data : any ) {
 
-        const user = await this.userRepository.findOneBy({ idUser });
-
-        if( !user ) return this.responseService.error('El token no es valido', 401);
-
-        if( !user.active ) return this.responseService.error('El usuario no esta activo', 403);
+        const user = await this.userRepository.findOneBy({ email: data.email });
+        
+        if( !user ) throw new CustomUnauthorizedException('El token no es válido', 401);
+        
+        if( !user.active ) throw new CustomUnauthorizedException('El usuario no está activo', 403);
 
         return user;
     }
