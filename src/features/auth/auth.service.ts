@@ -6,8 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from './entities/user.entity';
 import { ResponseService } from '../shared/interceptors';
-import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto, UserResponseDto } from './dto';
-import { plainToInstance } from 'class-transformer';
+import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
+import { UserResponseMapper } from './mappers/user-response.mapper';
 
 
 @Injectable()
@@ -118,35 +118,7 @@ export class AuthService {
 
       if( !user ) return this.responseService.error('Usuario no encontrado', null, 404);
 
-      const rolesList = Array.from(
-      new Map(
-        user.menuRoles.map((mr) => [
-          mr.idRoles.idRoles, // clave única
-          { idRoles: mr.idRoles.idRoles, name: mr.idRoles.name },
-        ]),
-      ).values(),
-    );
-
-      const userResponse = plainToInstance(UserResponseDto, {
-      idUser: user.idUser,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      active : user.active,
-      avatarUrl: user.avatarUrl,
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      menuList: user.menuRoles.map((mr) => ({
-        menu: {
-          idMenu: mr.idMenu.idMenu,
-          name: mr.idMenu.name,
-          route: mr.idMenu.route,
-          icon: mr.idMenu.icon,
-        },
-      })),
-      rolesList,
-    });
+      const userResponse = UserResponseMapper.userResponseMapper( user );
 
       return this.responseService.success('Usuario cargado correctamente', userResponse, 202);
       
