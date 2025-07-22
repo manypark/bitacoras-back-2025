@@ -3,8 +3,8 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Task } from './entities/task.entity';
-import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
+import { CreateTaskDto, TaskFilterDto, UpdateTaskDto } from './dto';
 
 @Injectable()
 export class TasksService {
@@ -44,15 +44,31 @@ export class TasksService {
 // =========================================
 // ============== Find one Task ============
 // =========================================
-  async findOne( idTask:number) {
+  async getTasksByAssignedUserAndDate( { idUserAssigned, startDate, endDate } :TaskFilterDto ) {
+
     try {
-      const task = await this.taskRepository.findOneBy({ idTasks: idTask });
-      if (!task) return this.responseServices.error('Tarea no encontrada', null, 404);
-      return this.responseServices.success('Tarea cargada correctamente', task, 200);
+
+      const normalizeDayDate = endDate.split('-');
+      let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
+      newDateNormalized += 'T23:59:59';
+
+      const query = this.taskRepository.createQueryBuilder('task')
+        .leftJoinAndSelect('task.userAssigned', 'userAssigned')
+        .where('task.userAssigned = :idUserAssigned', { idUserAssigned })
+        .andWhere('task.createdAt >= :startDate', { startDate })
+        .andWhere('task.createdAt <= :endDate', { endDate:newDateNormalized });
+  
+      const tasks = await query.getMany();
+
+      return this.responseServices.success('Tareas cargada correctamente', tasks, 200);
+      
     } catch (error) {
-      return this.responseServices.error(error, null, 404);
+      console.log(error);
+      return this.responseServices.success(error, null, 500);
     }
+
   }
+
 
 // =========================================
 // ============== Update Task ==============

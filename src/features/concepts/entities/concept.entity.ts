@@ -8,7 +8,7 @@ export class Concept {
   @PrimaryGeneratedColumn()
   idConcept: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', unique:true })
   description: string;
 
   @Column({ type: 'boolean', default: true })

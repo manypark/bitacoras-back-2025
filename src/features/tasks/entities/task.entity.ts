@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
 
 import { User } from '../../auth/entities/user.entity';
 import { CreateAndUpdateAt } from '../../../features/shared';
@@ -27,4 +27,23 @@ export class Task extends CreateAndUpdateAt {
 
   @OneToMany(() => Logs, (log) => log.idTasks)
   logs: Logs[];
+
+  @BeforeInsert()
+  saveDateTime() {
+      this.createdAt = new Date();
+      this.updatedAt = new Date();
+  }
+  
+  @BeforeUpdate()
+  updateDateTime() {
+      this.updatedAt = new Date();
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  trimTitleAndDescription() {
+    this.title = this.title.trim();
+    this.description = this.description.trim();
+  }
+
 }
