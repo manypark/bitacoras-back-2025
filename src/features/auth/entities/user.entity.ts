@@ -1,9 +1,10 @@
 import * as bcrypt from 'bcrypt';
-import { BeforeInsert, BeforeUpdate, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
-import { CreateAndUpdateAt } from "src/features/shared";
-import { Role } from 'src/features/roles/entities/role.entity';
-import { MenuRoles } from 'src/features/menu-roles/entities/menu-role.entity';
+import { CreateAndUpdateAt } from "../../../features/shared";
+import { Logs } from '../../../features/logs/entities/logs.entity';
+import { Task } from '../../../features/tasks/entities/task.entity';
+import { MenuRoles } from '../../../features/menu-roles/entities/menu-role.entity';
 
 @Entity()
 export class User extends CreateAndUpdateAt {
@@ -38,6 +39,18 @@ export class User extends CreateAndUpdateAt {
         { eager:true }
     )
     menuRoles:MenuRoles[];
+
+    @OneToMany(
+        () => Logs,
+        (logs) => logs.idUser,
+    )
+    logs:Logs[];
+
+    @OneToMany(() => Task, (task) => task.userCreated)
+    tasksCreated: Task[];
+
+    @OneToMany(() => Task, (task) => task.userAssigned)
+    tasksAssigned: Task[];
 
     @BeforeInsert()
     saveDateTime() {

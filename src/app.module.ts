@@ -4,9 +4,12 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './features/auth/auth.module';
-import { RolesModule } from './features/roles/roles.module';
 import { MenuModule } from './features/menu/menu.module';
+import { RolesModule } from './features/roles/roles.module';
+import { TasksModule } from './features/tasks/tasks.module';
+import { ConceptsModule } from './features/concepts/concepts.module';
 import { MenuRolesModule } from './features/menu-roles/menu-roles.module';
+import { LogsModule } from './features/logs/logs.module';
 
 @Module({
   imports     : [
@@ -34,6 +37,9 @@ import { MenuRolesModule } from './features/menu-roles/menu-roles.module';
     RolesModule,
     MenuModule,
     MenuRolesModule,
+    TasksModule,
+    ConceptsModule,
+    LogsModule,
   ],
 })
 export class AppModule {}
