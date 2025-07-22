@@ -41,21 +41,18 @@ export class AuthService {
 
     try {
       
-      const loginUser = await this.userRepository.findOne({
-        where : { email, active:true },
-        select: { email : true, password : true, idUser: true },
-      });
+      const loginUser = await this.userRepository.findOne({ where : { email, active:true } });
   
       if( !loginUser ) return this.responseService.error('Usuario no encontrado o desactivado', null, 404);
   
       if( !bcrypt.compareSync(password, loginUser.password!) ) 
         return this.responseService.error('Usuario o contrasena no coinciden', null, 401);
 
-      delete loginUser.password;
+      const userResponse = UserResponseMapper.userResponseMapper( loginUser );
 
       const data = {
-        ...loginUser,
         token: this.getJwtToken( loginUser.email ),
+        ...userResponse,
       };
       
       await this.update( loginUser.idUser, { lastLogin: new Date() } );
@@ -97,7 +94,11 @@ export class AuthService {
         }
       });
 
-      return this.responseService.success('Usuarios cargados correctamente', users, 202);
+      const usersResponse = users.map( (user) => {
+        return  UserResponseMapper.userResponseMapper( user );
+      });
+
+      return this.responseService.success('Usuarios cargados correctamente', usersResponse, 202);
       
     } catch (error) {
       return this.responseService.error(error);
