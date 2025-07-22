@@ -1,5 +1,7 @@
 import { IsString, IsInt, IsOptional, IsBoolean } from 'class-validator';
 
+import { User } from 'src/features/auth/entities/user.entity';
+
 export class CreateTaskDto {
 
   @IsString()
@@ -9,10 +11,10 @@ export class CreateTaskDto {
   description: string;
 
   @IsInt()
-  idUsersCreated: number;
+  userCreated:User;
 
   @IsInt()
-  idUserAssigned: number;
+  userAssigned:User;
 
   @IsOptional()
   @IsBoolean()

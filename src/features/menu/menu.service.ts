@@ -11,12 +11,14 @@ export class MenuService {
 
   constructor(
     @InjectRepository(Menu)
-    private readonly menuRepository: Repository<Menu>,
-    private readonly responseServices: ResponseService,
-    private readonly dataSource: DataSource,
+    private readonly menuRepository   : Repository<Menu>,
+    private readonly responseServices : ResponseService,
+    private readonly dataSource       : DataSource,
   ) {}
 
-  // Create
+// =========================================
+// ============== Create Menu ==============
+// =========================================
   async create(createMenuDto: CreateMenuDto) {
     try {
       const menu = this.menuRepository.create({ ...createMenuDto });
@@ -27,19 +29,24 @@ export class MenuService {
     }
   }
 
-  // Find all
+  
+// =========================================
+// ============== Find all menus ===========
+// =========================================
   async findAll() {
     try {
-      const menus = await this.menuRepository.find({
-        where: { active: true },
-      });
+      const menus = await this.menuRepository.find({ where: { active: true } });
       return this.responseServices.success('Menús cargados correctamente', menus, 200);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 404);
     }
   }
 
-  // Find one
+
+
+// =========================================
+// ============== Fine one menu ============
+// =========================================
   async findOne(id: number) {
     try {
       const menu = await this.menuRepository.findOneBy({ idMenu: id });
@@ -50,7 +57,10 @@ export class MenuService {
     }
   }
 
-  // Update
+  
+// =========================================
+// ============== Update Task ==============
+// =========================================
   async update(id: number, updateMenuDto: UpdateMenuDto) {
     const menu = await this.menuRepository.preload({ idMenu: id, ...updateMenuDto });
     if (!menu) return this.responseServices.error('Menú no encontrado', null, 404);
@@ -71,7 +81,10 @@ export class MenuService {
     }
   }
 
-  // Delete (soft delete)
+  
+// =========================================
+// ============== Delete Task ==============
+// =========================================
   async remove(id: number) {
     try {
       await this.update(id, { active: false });
