@@ -3,6 +3,7 @@ import { Controller, Get, Body, Patch, Param, Delete, Query } from '@nestjs/comm
 import { Auth } from './decorators';
 import { AuthService } from './auth.service';
 import { PaginationDto, UpdateAuthDto } from './dto';
+import { ValidRoles } from './interfaces/valid-roles';
 
 @Controller('users')
 export class UserController {
@@ -15,13 +16,13 @@ export class UserController {
     return this.userServices.findAll(paginationDto);
   }
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Get(':id')
   findOne( @Param('id') id:number ) {
     return this.userServices.findOne(id);
   }
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Patch(':id')
   update( 
     @Param('id') id : number, 
@@ -30,7 +31,7 @@ export class UserController {
     return this.userServices.update(+id, updateAuthDto);
   }
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Delete(':id')
   remove( @Param('id') id : number ) {
     return this.userServices.remove(+id);

@@ -111,8 +111,7 @@ export class AuthService {
      try {
 
       const user = await this.userRepository.findOneBy({ 
-        idUser, 
-        active:true,
+        idUser
       });
 
       delete user?.password;
