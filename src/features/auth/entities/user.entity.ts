@@ -54,14 +54,7 @@ export class User extends CreateAndUpdateAt {
 
     @BeforeInsert()
     saveDateTime() {
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
         this.lastLogin = new Date();
-    }
-    
-    @BeforeUpdate()
-    updateDateTime() {
-        this.updatedAt = new Date();
     }
     
     @BeforeInsert()

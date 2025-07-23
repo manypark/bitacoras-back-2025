@@ -29,17 +29,6 @@ export class Task extends CreateAndUpdateAt {
   logs: Logs[];
 
   @BeforeInsert()
-  saveDateTime() {
-      this.createdAt = new Date();
-      this.updatedAt = new Date();
-  }
-  
-  @BeforeUpdate()
-  updateDateTime() {
-      this.updatedAt = new Date();
-  }
-
-  @BeforeInsert()
   @BeforeUpdate()
   trimTitleAndDescription() {
     this.title = this.title.trim();

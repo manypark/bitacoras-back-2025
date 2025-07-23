@@ -2,50 +2,50 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Task } from './entities/task.entity';
+import { Logs } from './entities/logs.entity';
+import { CreateLogDto, UpdateLogDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
-import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Injectable()
-export class TasksService {
+export class LogsService {
 
-  constructor(
-    @InjectRepository(Task)
-    private readonly taskRepository   : Repository<Task>,
+   constructor(
+    @InjectRepository(Logs)
+    private readonly logsRepository   : Repository<Logs>,
     private readonly responseServices : ResponseService,
     private readonly dataSource       : DataSource,
   ) {}
 
 // =========================================
-// ============== Create Task ==============
+// ============== Create Log ===============
 // =========================================
-  async create(createTaskDto: CreateTaskDto) {
+  async create( createLogDto:CreateLogDto ) {
     try {
-      const task = this.taskRepository.create({ ...createTaskDto });
-      await this.taskRepository.save(task);
-      return this.responseServices.success('Tarea creado correctamente', task, 201);
+      const logs = this.logsRepository.create({ ...createLogDto });
+      await this.logsRepository.save(logs);
+      return this.responseServices.success('Bitacora creado correctamente', logs, 201);
     } catch (error) {
-      return this.responseServices.error(`Error creando la tarea: ${error.detail}`, null, 400);
+      return this.responseServices.error(`Error creando bitacora: ${error.detail}`, null, 400);
     }
   }
 
 // =========================================
-// ============== Fina all Tasks ===========
+// ============== Get all logs =============
 // =========================================
   async findAll() {
-     try {
-      const tasks = await this.taskRepository.find({ where: { active: true } });
-      return this.responseServices.success('Tareas cargados correctamente', tasks, 200);
+    try {
+      const logs = await this.logsRepository.find({ where: { active: true } });
+      return this.responseServices.success('Bitacoras cargados correctamente', logs, 200);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 404);
     }
   }
 
 // =========================================
-// ======= Find one Task by User ===========
+// ======= Find one Log by User ============
 // =========================================
-  async getTasksByAssignedUserAndDate( { idUserAssigned, startDate, endDate } : TaskFilterDto ) {
+  async getLogsUserCreatedAndDate( { idUserAssigned, startDate, endDate } : TaskFilterDto ) {
 
     try {
 
@@ -53,15 +53,15 @@ export class TasksService {
       let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
       newDateNormalized += 'T23:59:59';
 
-      const query = this.taskRepository.createQueryBuilder('task')
-        .leftJoinAndSelect('task.userAssigned', 'userAssigned')
-        .where('task.userAssigned = :idUserAssigned', { idUserAssigned })
-        .andWhere('task.createdAt >= :startDate', { startDate })
-        .andWhere('task.createdAt <= :endDate', { endDate:newDateNormalized });
+      const query = this.logsRepository.createQueryBuilder('logs')
+        .leftJoinAndSelect('logs.idUser', 'userAssigned')
+        .where('logs.idUser = :idUserAssigned', { idUserAssigned })
+        .andWhere('logs.createdAt >= :startDate', { startDate })
+        .andWhere('logs.createdAt <= :endDate', { endDate : newDateNormalized });
   
-      const tasks = await query.getMany();
+      const logs = await query.getMany();
 
-      return this.responseServices.success('Tareas cargada correctamente', tasks, 200);
+      return this.responseServices.success('Bitacoras cargada correctamente', logs, 200);
       
     } catch (error) {
       return this.responseServices.success(error, null, 500);
@@ -72,18 +72,19 @@ export class TasksService {
 // =========================================
 // ============== Update Task ==============
 // =========================================
-  async update( idTask:number, updateTaskDto:UpdateTaskDto ) {
-    const task = await this.taskRepository.preload({ idTasks: idTask, ...updateTaskDto });
-    if (!task) return this.responseServices.error('Tarea no encontrada', null, 404);
+  async update( idLog:number, updateLogDto:UpdateLogDto ) {
+
+    const logs = await this.logsRepository.preload({ idLogs:idLog, ...updateLogDto });
+    if (!logs) return this.responseServices.error('Bitacora no encontrado', null, 404);
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(task);
+      await queryRunner.manager.save(logs);
       await queryRunner.commitTransaction();
-      return this.responseServices.success('Tarea actualizada correctamente', task, 200);
+      return this.responseServices.success('Bitacora actualizada correctamente', logs, 200);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       return this.responseServices.error(error.detail, null, 500);
@@ -93,15 +94,14 @@ export class TasksService {
   }
 
 // =========================================
-// ============== Delete  Task =============
+// ============== Delete log ===============
 // =========================================
   async remove(id: number) {
     try {
       await this.update(id, { active: false });
-      return this.responseServices.success('Tarea eliminada correctamente', null, 200);
+      return this.responseServices.success('Bitacora eliminado correctamente', null, 200);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 500);
     }
   }
-
 }

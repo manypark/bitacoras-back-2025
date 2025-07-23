@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, TaskFilterDto, UpdateTaskDto } from './dto';
+import { CreateTaskDto, UpdateTaskDto } from './dto';
+import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -33,4 +34,5 @@ export class TasksController {
   remove(@Param('id') id: number) {
     return this.tasksService.remove(+id);
   }
+
 }
