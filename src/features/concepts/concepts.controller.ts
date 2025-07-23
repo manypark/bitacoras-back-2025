@@ -3,13 +3,14 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { Auth } from '../auth/decorators';
 import { ConceptsService } from './concepts.service';
 import { CreateConceptDto, UpdateConceptDto } from './dto';
+import { ValidRoles } from '../auth/interfaces/valid-roles';
 
 @Controller('concepts')
 export class ConceptsController {
 
   constructor(private readonly conceptsService: ConceptsService) {}
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Post()
   create(@Body() createConceptDto: CreateConceptDto) {
     return this.conceptsService.create(createConceptDto);
@@ -27,13 +28,13 @@ export class ConceptsController {
     return this.conceptsService.findOne(+id);
   }
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Patch(':id')
   update(@Param('id') id:number, @Body() updateConceptDto: UpdateConceptDto) {
     return this.conceptsService.update(+id, updateConceptDto);
   }
 
-  @Auth()
+  @Auth( ValidRoles.admin )
   @Delete(':id')
   remove(@Param('id') id:number) {
     return this.conceptsService.remove(+id);
