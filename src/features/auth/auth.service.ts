@@ -65,6 +65,36 @@ export class AuthService {
 
   }
 
+  // ================================================
+  // ✅ Nuevo: Refresh Token usando el token viejo
+  // ================================================
+  async refreshToken( token : string ) {
+    try {
+      // Verifica el token anterior
+      const decoded = this.jwtServices.verify(token, {ignoreExpiration:true});
+      const email = decoded.email;
+
+      if (!email) {
+        return this.responseService.error('Token inválido: sin email', null, 401);
+      }
+
+      // Busca que el usuario exista y siga activo
+      const user = await this.userRepository.findOne({ where: { email, active: true } });
+      
+      if (!user) {
+        return this.responseService.error('Usuario no encontrado o inactivo', null, 404);
+      }
+
+      // Genera un nuevo token
+      const newToken = this.jwtServices.sign({ email: user.email });
+
+      return this.responseService.success('Nuevo token generado', { token: newToken }, 200);
+
+    } catch (error) {
+      return this.responseService.error('Token inválido o expirado', null, 500);
+    }
+  }
+
 // ####################### || Generate JWT || #######################  
   private getJwtToken( email:string ):string {
 

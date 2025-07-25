@@ -65,6 +65,8 @@ export class TasksService {
       // 👇 Trae el resultado crudo porque tienes agregados
       const tasks = await query.getRawAndEntities();
 
+      tasks.entities.map( (ent) => delete ent.userAssigned.password );
+
       // Los conteos están en .raw y las tareas en .entities
       const result = tasks.entities.map((task, index) => ({
         ...task,

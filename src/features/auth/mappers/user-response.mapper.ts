@@ -14,12 +14,10 @@ export class UserResponseMapper {
             createdAt   : user.createdAt,
             updatedAt   : user.updatedAt,
             menuList    : user.menuRoles.map((mr) => ({
-                        menu: {
-                            idMenu  : mr.idMenu.idMenu,
-                            name    : mr.idMenu.name,
-                            route   : mr.idMenu.route,
-                            icon    : mr.idMenu.icon,
-                        },
+                        idMenu  : mr.idMenu.idMenu,
+                        name    : mr.idMenu.name,
+                        route   : mr.idMenu.route,
+                        icon    : mr.idMenu.icon,
                     }
                 )
             ),

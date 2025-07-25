@@ -29,7 +29,7 @@ import { ResponseService } from '../shared/interceptors';
       inject    : [ ConfigService ],
       useFactory: ( configServices:ConfigService ) => ({
           secret      :  configServices.get('JWT_SECRET'),
-          signOptions : { expiresIn: '5h' },
+          signOptions : { expiresIn: '100h' },
       })
     }),
     ConfigModule,
