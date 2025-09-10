@@ -15,6 +15,10 @@ async function bootstrap() {
   app.useGlobalPipes( new ValidationPipe( { whitelist : true } ) );
   app.useGlobalInterceptors( new ResponseInterceptor() );
 
+  app.enableCors({
+    origin: process.env.CORS_ORIGINS?.split(',') || [],
+  });
+
   await app.listen(process.env.PORT ?? 3000);
 
   logger.log(`App running on port ${process.env.PORT}`);
