@@ -28,7 +28,7 @@ import { LogsModule } from './features/logs/logs.module';
       extra: {
         ssl: {
           rejectUnauthorized: true,
-          ca: fs.readFileSync( __dirname + process.env.DB_SSL_CA_PATH ).toString(),
+          ca: fs.readFileSync( process.env.DB_SSL_CA_PATH! ).toString(),
         },
         options: '-c timezone=UTC',
       }
