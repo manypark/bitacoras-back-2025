@@ -53,7 +53,7 @@ export class User extends CreateAndUpdateAt {
     tasksAssigned: Task[];
 
     @BeforeInsert()
-    saveDateTime() {
+    setLastLogin() {
         this.lastLogin = new Date();
     }
     

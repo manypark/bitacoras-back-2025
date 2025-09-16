@@ -2,10 +2,10 @@ import { BeforeInsert, BeforeUpdate, Column } from "typeorm";
 
 export class CreateAndUpdateAt {
 
-    @Column('timestamp')
+    @Column('timestamp', { default: () => 'CURRENT_TIMESTAMP' })
     createdAt:Date;
 
-    @Column('timestamp')
+    @Column('timestamp', { default: () => 'CURRENT_TIMESTAMP' })
     updatedAt:Date;
 
     @BeforeInsert()
