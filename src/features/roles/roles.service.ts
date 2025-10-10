@@ -3,6 +3,7 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Role } from './entities/role.entity';
+import { PaginationDto } from '../shared/dto';
 import { CreateRoleDto, UpdateRoleDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
 
@@ -31,10 +32,14 @@ export class RolesService {
   }
 
 // ####################### || Find all Roles || #######################
-  async findAll() {
+  async findAll({ limit = 5, offset = 0 } : PaginationDto ) {
     try {
       const roles = await this.roleRepository.find({
-        where: { active:true }
+        take      : limit, 
+        skip      : offset,
+        order: {
+            idRoles: "ASC",
+        },
       });
 
       return this.responseServices.success('Roles cargados correctamente', roles, 202);

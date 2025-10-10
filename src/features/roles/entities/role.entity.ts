@@ -1,5 +1,5 @@
 import { MenuRoles } from "src/features/menu-roles/entities/menu-role.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Role {
