@@ -49,6 +49,34 @@ export class RolesService {
     }
   }
 
+// ####################### || Find Roles Info || #######################
+  async findInfoRoles() {
+    try {
+      const rolesActive = await this.roleRepository.find({
+        where: {
+          active: true
+        }
+      });
+
+      const rolesInactive = await this.roleRepository.find({
+        where: {
+          active: false
+        }
+      });
+
+      const rolesTotals = await this.roleRepository.find({});
+
+      return this.responseServices.success('Roles cargados correctamente', {
+        rolesActive   : rolesActive.length,
+        rolesInactive : rolesInactive.length,
+        rolesTotals   : rolesTotals.length,
+      }, 202);
+
+    } catch (error) {
+      return this.responseServices.error(error.detail, null, 404);
+    }
+  }
+
 // ####################### || Find one rol || #######################  
   async findOne( idRole:number ) {
     try {

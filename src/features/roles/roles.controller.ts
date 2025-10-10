@@ -19,6 +19,11 @@ export class RolesController {
     return this.rolesService.findAll( paginationDto );
   }
 
+  @Get('/info')
+  findInfoRoles() {
+    return this.rolesService.findInfoRoles();
+  }
+
   @Get(':id')
   findOne(@Param('id') id:number) {
     return this.rolesService.findOne(+id);
