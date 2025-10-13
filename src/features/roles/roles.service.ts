@@ -67,9 +67,9 @@ export class RolesService {
       const rolesTotals = await this.roleRepository.find({});
 
       return this.responseServices.success('Roles cargados correctamente', {
-        rolesActive   : rolesActive.length,
-        rolesInactive : rolesInactive.length,
-        rolesTotals   : rolesTotals.length,
+        actives   : rolesActive.length,
+        inactives : rolesInactive.length,
+        totals    : rolesTotals.length,
       }, 202);
 
     } catch (error) {

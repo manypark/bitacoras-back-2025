@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
 import { Auth } from '../auth/decorators';
+import { PaginationDto } from '../shared/dto';
 import { ConceptsService } from './concepts.service';
 import { CreateConceptDto, UpdateConceptDto } from './dto';
 import { ValidRoles } from '../auth/interfaces/valid-roles';
@@ -18,8 +19,14 @@ export class ConceptsController {
 
   @Auth()
   @Get()
-  findAll() {
-    return this.conceptsService.findAll();
+  findAll( @Query() paginationDto:PaginationDto ) {
+    return this.conceptsService.findAll( paginationDto );
+  }
+
+  @Auth()
+  @Get('/info')
+  findInfoConcepts() {
+    return this.conceptsService.findInfoConcepts();
   }
 
   @Auth()

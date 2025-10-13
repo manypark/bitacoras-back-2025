@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { PaginationDto } from '../shared/dto';
 import { Concept } from './entities/concept.entity';
 import { ResponseService } from '../shared/interceptors';
 import { CreateConceptDto, UpdateConceptDto } from './dto';
@@ -26,10 +27,41 @@ export class ConceptsService {
     }
   }
 
-  async findAll() {
+  async findAll( { limit = 5, offset = 0 } : PaginationDto  ) {
     try {
-      const concepts = await this.conceptRepository.find({ where: { active: true } });
+      const concepts = await this.conceptRepository.find({
+        take      : limit, 
+        skip      : offset,
+        order: {
+            idConcept: "ASC",
+        },
+      });
       return this.responseServices.success('Conceptos cargados correctamente', concepts, 200);
+    } catch (error) {
+      return this.responseServices.error(error.detail, null, 404);
+    }
+  }
+
+  async findInfoConcepts() {
+    try {
+      const conceptsActives = await this.conceptRepository.find({
+        where: {
+          active: true
+        }
+      });
+      const conceptsInactives = await this.conceptRepository.find({
+        where: {
+          active: false
+        }
+      });
+      const conceptsTotals = await this.conceptRepository.find({});
+
+      return this.responseServices.success('Roles cargados correctamente', {
+        actives   : conceptsActives.length,
+        inactives : conceptsInactives.length,
+        totals    : conceptsTotals.length,
+      }, 202);
+
     } catch (error) {
       return this.responseServices.error(error.detail, null, 404);
     }
