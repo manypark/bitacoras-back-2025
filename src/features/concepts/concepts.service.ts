@@ -101,7 +101,9 @@ export class ConceptsService {
 
   async remove( idConcept:number ) {
     try {
-      await this.update( idConcept, { active: false } );
+      const concept = await this.conceptRepository.findOneBy({ idConcept: idConcept });
+      if( !concept ) return this.responseServices.error('Concepto no encontrado', null, 404);
+      await this.conceptRepository.remove(concept);
       return this.responseServices.success('Concepto eliminado correctamente', null, 200);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 500);

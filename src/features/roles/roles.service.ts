@@ -123,8 +123,10 @@ export class RolesService {
 // ####################### || Delete rol || #######################
   async remove(id: number) {
     try {
-      await this.update(id, {active:false});
-      return this.responseServices.success('Role elimnado correctamente', null, 202);
+      const role = await this.roleRepository.findOneBy({ idRoles: id });
+      if( !role ) return this.responseServices.error('Rol no encontrado', null, 404);
+      await this.roleRepository.remove(role);
+      return this.responseServices.success('Role eliminado correctamente', null, 202);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 500);
     }
