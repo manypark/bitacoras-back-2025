@@ -6,7 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from './entities/user.entity';
 import { ResponseService } from '../shared/interceptors';
-import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
+import { CreateAuthDto, UpdateAuthDto, LoginUserDto } from './dto';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 
 
@@ -97,19 +97,15 @@ export class AuthService {
 
 // ####################### || Generate JWT || #######################  
   private getJwtToken( email:string ):string {
-
     const token = this.jwtServices.sign({ email });
-
     return token;
   }
 
 // ####################### || Get all users || #######################
-  async findAll(  { limit = 10, offset = 0 } : PaginationDto ) {
+  async findAll() {
     try {
 
       const users = await this.userRepository.find({
-        take      : limit, 
-        skip      : offset,
         where     : { active:true },
         select    : {
           idUser:true,
@@ -117,19 +113,13 @@ export class AuthService {
           lastName:true,
           email:true,
           active:true,
-          lastLogin:true,
           avatarUrl:true,
-          createdAt:true,
-          updatedAt:true
         }
       });
 
-      const usersResponse = users.map( (user) => {
-        return  UserResponseMapper.userResponseMapper( user );
-      });
+      users.map( user => delete user.menuRoles);
 
-      return this.responseService.success('Usuarios cargados correctamente', usersResponse, 202);
-      
+      return this.responseService.success('Usuarios cargados correctamente', users, 200);
     } catch (error) {
       return this.responseService.error(error);
     }
@@ -191,11 +181,9 @@ export class AuthService {
   async remove(id: number) {
     try {
       await this.update(id, { active : false } );
-
       return this.responseService.success('Usuario eliminado correctamente', null, 202);
     } catch (error) {
       return this.responseService.error(error.detail, null, 500);
     }
   }
-
 }

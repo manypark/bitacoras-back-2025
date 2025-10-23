@@ -12,8 +12,8 @@ export class UserController {
 
   @Auth()
   @Get()
-  findAll( @Query() paginationDto:PaginationDto ) {
-    return this.userServices.findAll(paginationDto);
+  findAll() {
+    return this.userServices.findAll();
   }
 
   @Auth( ValidRoles.admin )

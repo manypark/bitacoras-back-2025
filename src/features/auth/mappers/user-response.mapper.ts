@@ -13,7 +13,7 @@ export class UserResponseMapper {
             lastLogin   : user.lastLogin,
             createdAt   : user.createdAt,
             updatedAt   : user.updatedAt,
-            menuList    : user.menuRoles.map((mr) => ({
+            menuList    : user.menuRoles?.map((mr) => ({
                         idMenu  : mr.idMenu.idMenu,
                         name    : mr.idMenu.name,
                         route   : mr.idMenu.route,
@@ -21,7 +21,7 @@ export class UserResponseMapper {
                     }
                 )
             ),
-            rolesList: Array.from( new Map( user.menuRoles.map((mr) => [
+            rolesList: Array.from( new Map( user.menuRoles?.map((mr) => [
                         mr.idRoles.idRoles, // clave única
                         { idRoles: mr.idRoles.idRoles, name: mr.idRoles.name },
                     ]

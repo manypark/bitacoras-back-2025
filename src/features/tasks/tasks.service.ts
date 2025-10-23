@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Task } from './entities/task.entity';
-import { ResponseService } from '../shared/interceptors';
+import { PaginationDto } from '../shared/dto';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
+import { ResponseService } from '../shared/interceptors';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Injectable()
@@ -30,13 +31,114 @@ export class TasksService {
     }
   }
 
-// =========================================
-// ============== Fina all Tasks ===========
-// =========================================
-  async findAll() {
-     try {
-      const tasks = await this.taskRepository.find({ where: { active: true } });
-      return this.responseServices.success('Tareas cargados correctamente', tasks, 200);
+  // =========================================
+  // ============== Fina all Tasks ===========
+  // =========================================
+  async findAll({ limit = 5, offset = 0 }: PaginationDto, { idUserAssigned = [], startDate, endDate }: TaskFilterDto, ) {
+  try {
+    const normalizeDayDate = endDate.split('-');
+    let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
+    newDateNormalized += 'T23:59:59';
+
+    const query = this.taskRepository
+      .createQueryBuilder('task')
+      // 🔹 Selects mínimos para reducir ancho del JSON
+      .select([
+        'task.idTasks',
+        'task.title',
+        'task.description',
+        'task.active',
+        'task.createdAt',
+        'userAssigned.idUser',
+        'userAssigned.firstName',
+        'userAssigned.lastName',
+        'userAssigned.email',
+        'userCreated.idUser',
+        'userCreated.firstName',
+        'userCreated.lastName',
+        'userCreated.email',
+      ])
+      .leftJoin('task.userAssigned', 'userAssigned')
+      .leftJoin('task.userCreated', 'userCreated')
+      // 🔹 Subquery para contar logs (más rápido que GROUP BY)
+      .addSelect((subQuery) =>
+        subQuery
+          .select('COUNT(*)')
+          .from('logs', 'l')
+          .where('l.idTasks = task.idTasks'),
+        'logsCount',
+      )
+      // 🔹 Filtros por rango de fechas
+      .where('task.createdAt >= :startDate', { startDate })
+      .andWhere('task.createdAt <= :endDate', { endDate: newDateNormalized })
+      // 🔹 Filtro por usuarios seleccionados
+      .andWhere(idUserAssigned.length > 0 ? 'task.userAssignedIdUser IN (:...idUserAssigned)' : '1=1', {
+        idUserAssigned,
+      })
+      // 🔹 Paginación + orden
+      .orderBy('task.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      // 🔹 Cache de 5s (útil si recargas dashboard)
+      .cache(5000);
+
+    const tasks = await query.getRawMany();
+
+    // 🔹 Mapear resultados
+    const result = tasks.map((t) => ({
+      idTasks: t.task_idTasks,
+      title: t.task_title,
+      description: t.task_description,
+      active: t.task_active,
+      createdAt: t.task_createdAt,
+      userAssignedTo: {
+        idUser: t.userAssigned_idUser,
+        firstName: t.userAssigned_firstName,
+        lastName: t.userAssigned_lastName,
+        email: t.userAssigned_email,
+      },
+      userCreatedBy: {
+        idUser: t.userCreated_idUser,
+        firstName: t.userCreated_firstName,
+        lastName: t.userCreated_lastName,
+        email: t.userCreated_email,
+      },
+      logsCount: parseInt(t.logsCount, 10) || 0,
+    }));
+
+    return this.responseServices.success('Tareas cargadas correctamente', result, 200);
+  } catch (error) {
+    console.error(error);
+    return this.responseServices.error(error.detail ?? 'Error al cargar tareas', null, 404);
+  }
+}
+
+
+  // =========================================
+  // ============== Find info tasks ===========
+  // =========================================
+  async findInfoTasks() {
+    try {
+      const tasksActives = await this.taskRepository.find({
+        where: {
+          active: true
+        }
+      });
+
+      const tasksInactives = await this.taskRepository.find({
+        where: {
+          active: false
+        }
+      });
+
+      const tasksTotals = await this.taskRepository.find({});
+
+      return this.responseServices.success('Tareas cargados correctamente', {
+        actives   : tasksActives.length,
+        inactives : tasksInactives.length,
+        totals    : tasksTotals.length,
+      }, 202);
+
     } catch (error) {
       return this.responseServices.error(error.detail, null, 404);
     }
@@ -108,7 +210,7 @@ export class TasksService {
 // =========================================
   async remove(id: number) {
     try {
-      await this.update(id, { active: false });
+      await this.taskRepository.delete(id);
       return this.responseServices.success('Tarea eliminada correctamente', null, 200);
     } catch (error) {
       return this.responseServices.error(error.detail, null, 500);

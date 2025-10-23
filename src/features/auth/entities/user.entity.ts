@@ -31,14 +31,14 @@ export class User extends CreateAndUpdateAt {
     lastLogin:Date;
 
     @Column('text', { default: '' } )
-    avatarUrl:string;
+    avatarUrl?:string;
 
     @OneToMany(
         () => MenuRoles,
         (menuRol) => menuRol.idUser,
         { eager:true }
     )
-    menuRoles:MenuRoles[];
+    menuRoles?:MenuRoles[];
 
     @OneToMany(
         () => Logs,
