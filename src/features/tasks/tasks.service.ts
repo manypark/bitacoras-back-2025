@@ -3,7 +3,7 @@ import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Task } from './entities/task.entity';
-import { PaginationDto } from '../shared/dto';
+import { PaginationDto, TaskUsersFilterDto } from '../shared/dto';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
@@ -34,84 +34,83 @@ export class TasksService {
   // =========================================
   // ============== Fina all Tasks ===========
   // =========================================
-  async findAll({ limit = 5, offset = 0 }: PaginationDto, { idUserAssigned = [], startDate, endDate }: TaskFilterDto, ) {
-  try {
-    const normalizeDayDate = endDate.split('-');
-    let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
-    newDateNormalized += 'T23:59:59';
+  async findAll( { limit = 5, offset = 0 } : PaginationDto,  { idUserAssigned , idUserCreated } : TaskUsersFilterDto ) {
+    try {
+      const query = this.taskRepository
+        .createQueryBuilder('task')
+        // 🔹 Selects mínimos
+        .select([
+          'task.idTasks',
+          'task.title',
+          'task.description',
+          'task.active',
+          'task.createdAt',
+          'userAssigned.idUser',
+          'userAssigned.firstName',
+          'userAssigned.lastName',
+          'userAssigned.email',
+          'userCreated.idUser',
+          'userCreated.firstName',
+          'userCreated.lastName',
+          'userCreated.email',
+        ])
+        .leftJoin('task.userAssigned', 'userAssigned')
+        .leftJoin('task.userCreated', 'userCreated')
+        // 🔹 Subquery para contar logs
+        .addSelect((subQuery) =>
+          subQuery
+            .select('COUNT(*)')
+            .from('logs', 'l')
+            .where('l.idTasks = task.idTasks'),
+          'logsCount',
+        );
 
-    const query = this.taskRepository
-      .createQueryBuilder('task')
-      // 🔹 Selects mínimos para reducir ancho del JSON
-      .select([
-        'task.idTasks',
-        'task.title',
-        'task.description',
-        'task.active',
-        'task.createdAt',
-        'userAssigned.idUser',
-        'userAssigned.firstName',
-        'userAssigned.lastName',
-        'userAssigned.email',
-        'userCreated.idUser',
-        'userCreated.firstName',
-        'userCreated.lastName',
-        'userCreated.email',
-      ])
-      .leftJoin('task.userAssigned', 'userAssigned')
-      .leftJoin('task.userCreated', 'userCreated')
-      // 🔹 Subquery para contar logs (más rápido que GROUP BY)
-      .addSelect((subQuery) =>
-        subQuery
-          .select('COUNT(*)')
-          .from('logs', 'l')
-          .where('l.idTasks = task.idTasks'),
-        'logsCount',
-      )
-      // 🔹 Filtros por rango de fechas
-      .where('task.createdAt >= :startDate', { startDate })
-      .andWhere('task.createdAt <= :endDate', { endDate: newDateNormalized })
-      // 🔹 Filtro por usuarios seleccionados
-      .andWhere(idUserAssigned.length > 0 ? 'task.userAssignedIdUser IN (:...idUserAssigned)' : '1=1', {
-        idUserAssigned,
-      })
+      // 🔹 Filtros dinámicos
+      if (idUserAssigned.length > 0 && !idUserAssigned.includes(0)) {
+        query.andWhere('task.userAssignedIdUser IN (:...idUserAssigned)', {
+          idUserAssigned,
+        });
+      }
+
+      if (idUserCreated.length > 0 && !idUserCreated.includes(0)) {
+        query.andWhere('task.userCreatedIdUser IN (:...idUserCreated)', {
+          idUserCreated,
+        });
+      }
+
       // 🔹 Paginación + orden
-      .orderBy('task.createdAt', 'DESC')
-      .skip(offset)
-      .take(limit)
-      // 🔹 Cache de 5s (útil si recargas dashboard)
-      .cache(5000);
+      query.orderBy('task.createdAt', 'DESC').skip(offset).take(limit);
 
-    const tasks = await query.getRawMany();
+      const tasks = await query.getRawMany();
 
-    // 🔹 Mapear resultados
-    const result = tasks.map((t) => ({
-      idTasks: t.task_idTasks,
-      title: t.task_title,
-      description: t.task_description,
-      active: t.task_active,
-      createdAt: t.task_createdAt,
-      userAssignedTo: {
-        idUser: t.userAssigned_idUser,
-        firstName: t.userAssigned_firstName,
-        lastName: t.userAssigned_lastName,
-        email: t.userAssigned_email,
-      },
-      userCreatedBy: {
-        idUser: t.userCreated_idUser,
-        firstName: t.userCreated_firstName,
-        lastName: t.userCreated_lastName,
-        email: t.userCreated_email,
-      },
-      logsCount: parseInt(t.logsCount, 10) || 0,
-    }));
+      const result = tasks.map((t) => ({
+        idTasks: t.task_idTasks,
+        title: t.task_title,
+        description: t.task_description,
+        active: t.task_active,
+        createdAt: t.task_createdAt,
+        userAssigned: {
+          idUser: t.userAssigned_idUser,
+          firstName: t.userAssigned_firstName,
+          lastName: t.userAssigned_lastName,
+          email: t.userAssigned_email,
+        },
+        userCreated: {
+          idUser: t.userCreated_idUser,
+          firstName: t.userCreated_firstName,
+          lastName: t.userCreated_lastName,
+          email: t.userCreated_email,
+        },
+        logsCount: parseInt(t.logsCount, 10) || 0,
+      }));
 
-    return this.responseServices.success('Tareas cargadas correctamente', result, 200);
-  } catch (error) {
-    console.error(error);
-    return this.responseServices.error(error.detail ?? 'Error al cargar tareas', null, 404);
+      return this.responseServices.success('Tareas cargadas correctamente', result, 200);
+    } catch (error) {
+      console.error(error);
+      return this.responseServices.error(error.detail ?? 'Error al cargar tareas', null, 404);
+    }
   }
-}
+
 
 
   // =========================================

@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
-import { PaginationDto } from '../shared';
 import { Auth } from '../auth/decorators';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ValidRoles } from '../auth/interfaces/valid-roles';
+import { PaginationDto, TaskUsersFilterDto } from '../shared';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Controller('tasks')
@@ -19,8 +19,8 @@ export class TasksController {
   }
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
   @Get()
-  findAll( @Query() paginationDto:PaginationDto, @Query() filter: TaskFilterDto  ) {
-    return this.tasksService.findAll( paginationDto, filter );
+  findAll( @Query() paginationDto:PaginationDto, @Query() usersFilters:TaskUsersFilterDto ) {
+    return this.tasksService.findAll( paginationDto, usersFilters );
   }
 
   @Get('/info')
@@ -45,5 +45,4 @@ export class TasksController {
   remove(@Param('id') id: number) {
     return this.tasksService.remove(+id);
   }
-
 }
