@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Task } from './entities/task.entity';
-import { PaginationDto, TaskUsersFilterDto } from '../shared/dto';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
+import { PaginationDto, TaskUsersFilterDto } from '../shared/dto';
 
 @Injectable()
 export class TasksService {
@@ -34,11 +34,37 @@ export class TasksService {
   // =========================================
   // ============== Fina all Tasks ===========
   // =========================================
-  async findAll( { limit = 5, offset = 0 } : PaginationDto,  { idUserAssigned , idUserCreated } : TaskUsersFilterDto ) {
+  async findAll( { limit = 5, offset = 0 }: PaginationDto, { idUserAssigned = [], idUserCreated = [] }: TaskUsersFilterDto ) {
     try {
-      const query = this.taskRepository
+      const parsedLimit = Math.max(1, Number(limit) || 5);
+      const parsedPage = Math.max(0, Number(offset) || 0);
+      const rowOffset = parsedPage * parsedLimit;
+
+      // 1) Obtener solo ids (paginar sobre ids evita duplicados por joins)
+      const idsQb = this.taskRepository
         .createQueryBuilder('task')
-        // 🔹 Selects mínimos
+        .select('task.idTasks', 'id')
+        .leftJoin('task.userAssigned', 'userAssigned')
+        .leftJoin('task.userCreated', 'userCreated');
+
+      if (Array.isArray(idUserAssigned) && idUserAssigned.length > 0 && !idUserAssigned.includes(0)) {
+        idsQb.andWhere('task.userAssignedIdUser IN (:...idUserAssigned)', { idUserAssigned });
+      }
+
+      if (Array.isArray(idUserCreated) && idUserCreated.length > 0 && !idUserCreated.includes(0)) {
+        idsQb.andWhere('task.userCreatedIdUser IN (:...idUserCreated)', { idUserCreated });
+      }
+
+      idsQb.orderBy('task.createdAt', 'DESC').addOrderBy('task.idTasks', 'DESC').limit(parsedLimit).offset(rowOffset);
+
+      const rawIds = await idsQb.getRawMany();
+      const ids = rawIds.map((r) => Number(r.id));
+      if (ids.length === 0) {
+        return this.responseServices.success('Tareas cargadas correctamente', [], 200);
+      }
+
+      const rowsQb = this.taskRepository
+        .createQueryBuilder('task')
         .select([
           'task.idTasks',
           'task.title',
@@ -56,34 +82,19 @@ export class TasksService {
         ])
         .leftJoin('task.userAssigned', 'userAssigned')
         .leftJoin('task.userCreated', 'userCreated')
-        // 🔹 Subquery para contar logs
-        .addSelect((subQuery) =>
-          subQuery
+        .addSelect(subQ => subQ
             .select('COUNT(*)')
             .from('logs', 'l')
             .where('l.idTasks = task.idTasks'),
           'logsCount',
-        );
+        )
+        .where('task.idTasks IN (:...ids)', { ids });
 
-      // 🔹 Filtros dinámicos
-      if (idUserAssigned.length > 0 && !idUserAssigned.includes(0)) {
-        query.andWhere('task.userAssignedIdUser IN (:...idUserAssigned)', {
-          idUserAssigned,
-        });
-      }
+      rowsQb.orderBy(`array_position(ARRAY[:...ids]::int[], task.idTasks)`, 'ASC');
 
-      if (idUserCreated.length > 0 && !idUserCreated.includes(0)) {
-        query.andWhere('task.userCreatedIdUser IN (:...idUserCreated)', {
-          idUserCreated,
-        });
-      }
+      const rawRows = await rowsQb.getRawMany();
 
-      // 🔹 Paginación + orden
-      query.orderBy('task.createdAt', 'DESC').skip(offset).take(limit);
-
-      const tasks = await query.getRawMany();
-
-      const result = tasks.map((t) => ({
+      const result = rawRows.map((t) => ({
         idTasks: t.task_idTasks,
         title: t.task_title,
         description: t.task_description,
@@ -110,8 +121,6 @@ export class TasksService {
       return this.responseServices.error(error.detail ?? 'Error al cargar tareas', null, 404);
     }
   }
-
-
 
   // =========================================
   // ============== Find info tasks ===========
