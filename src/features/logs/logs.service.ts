@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { LogsFilterDto } from '../shared';
 import { Logs } from './entities/logs.entity';
 import { CreateLogDto, UpdateLogDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
-import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Injectable()
 export class LogsService {
@@ -42,32 +42,76 @@ export class LogsService {
     }
   }
 
-// =========================================
-// ======= Find one Log by User ============
-// =========================================
-  async getLogsUserCreatedAndDate( { idUserAssigned, startDate, endDate } : TaskFilterDto ) {
-
+  // =========================================
+  // ======= Find one Log by User ============
+  // =========================================
+  async getLogsByUserAndFilters({
+    idUserAssigned,
+    idConcepts = [],
+    startDate,
+    endDate,
+    limit = 5,
+    offset = 0,
+  }:LogsFilterDto ) {
     try {
-
-      const normalizeDayDate = endDate.split('-');
-      let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
-      newDateNormalized += 'T23:59:59';
-
-      const query = this.logsRepository.createQueryBuilder('logs')
+      const query = this.logsRepository
+        .createQueryBuilder('logs')
         .leftJoinAndSelect('logs.idUser', 'userAssigned')
-        .where('logs.idUser = :idUserAssigned', { idUserAssigned })
-        .andWhere('logs.createdAt >= :startDate', { startDate })
-        .andWhere('logs.createdAt <= :endDate', { endDate : newDateNormalized });
-  
+        .leftJoinAndSelect('logs.idConcept', 'concept')
+        .select([
+          'logs.idLogs',
+          'logs.description',
+          'logs.image_url',
+          'logs.latitud',
+          'logs.longitud',
+          'logs.createdAt',
+          'concept.idConcept',
+          'concept.description',
+          'userAssigned.idUser',
+          'userAssigned.firstName',
+          'userAssigned.lastName',
+          'userAssigned.email',
+        ]);
+
+      // 🔹 Filtro por usuarios asignados
+      if (Array.isArray(idUserAssigned) && idUserAssigned.length > 0 && !idUserAssigned.includes(0)) {
+        query.andWhere('logs.idUser IN (:...idUserAssigned)', { idUserAssigned });
+      }
+
+      // 🔹 Filtro por conceptos
+      if (Array.isArray(idConcepts) && idConcepts.length > 0 && !idConcepts.includes(0)) {
+        query.andWhere('logs.idConcept IN (:...idConcepts)', { idConcepts });
+      }
+
+      // 🔹 Filtro por fechas
+      if (startDate && endDate) {
+        const normalizedEnd = `${endDate}T23:59:59`;
+        query.andWhere('logs.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate: normalizedEnd,
+        });
+      } else if (startDate) {
+        query.andWhere('logs.createdAt >= :startDate', { startDate });
+      } else if (endDate) {
+        const normalizedEnd = `${endDate}T23:59:59`;
+        query.andWhere('logs.createdAt <= :endDate', { endDate: normalizedEnd });
+      }
+
+      // 🔹 Orden + paginación
+      query.orderBy('logs.createdAt', 'DESC');
+
+      // ✅ Aquí va la paginación (en Postgres skip = OFFSET, limit = LIMIT)
+      query.skip(offset * limit).take(limit);
+
       const logs = await query.getMany();
 
-      return this.responseServices.success('Bitacoras cargada correctamente', logs, 200);
-      
+      return this.responseServices.success('Bitácoras cargadas correctamente', logs, 200);
     } catch (error) {
-      return this.responseServices.success(error, null, 500);
+      console.error(error);
+      return this.responseServices.error(error.detail ?? 'Error al cargar bitácoras', null, 500);
     }
-
   }
+
 
 // =========================================
 // ============== Update Task ==============

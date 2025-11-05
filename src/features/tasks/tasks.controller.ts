@@ -5,7 +5,6 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ValidRoles } from '../auth/interfaces/valid-roles';
 import { PaginationDto, TaskUsersFilterDto } from '../shared';
-import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -26,12 +25,6 @@ export class TasksController {
   @Get('/info')
   findInfoTasks() {
     return this.tasksService.findInfoTasks();
-  }
-
-  @Auth()
-  @Get('by-user')
-  getTasks( @Query() filter: TaskFilterDto ) {
-    return this.tasksService.getTasksByAssignedUserAndDate( filter );
   }
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )

@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
 import { Auth } from '../auth/decorators';
+import { LogsFilterDto } from '../shared';
 import { LogsService } from './logs.service';
 import { CreateLogDto, UpdateLogDto } from './dto';
-import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 import { ValidRoles } from '../auth/interfaces/valid-roles';
 
 @Controller('logs')
@@ -24,8 +24,8 @@ export class LogsController {
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
   @Get('by-user')
-  findOne( @Query() filter: TaskFilterDto ) {
-    return this.logsService.getLogsUserCreatedAndDate( filter );
+  findOne( @Query() filter: LogsFilterDto ) {
+    return this.logsService.getLogsByUserAndFilters( filter );
   }
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
