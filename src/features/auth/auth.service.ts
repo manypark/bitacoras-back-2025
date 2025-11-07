@@ -125,6 +125,24 @@ export class AuthService {
     }
   }
 
+  // ####################### || Get info users || #######################
+  async findInfoUsers() {
+    try {
+        const usersActives = await this.userRepository.count({ where: { active: true }});
+        const usersInActives = await this.userRepository.count({ where: { active: false }});
+        const usersTotals = await this.userRepository.count();
+
+        return this.responseService.success('Usuarios info cargados correctamente', {
+          actives   : usersActives,
+          inactives : usersInActives,
+          totals    : usersTotals,
+        }, 202);
+    } catch (error) {
+      console.error(error);
+      return this.responseService.error(error.detail, null, 404);
+    }
+  }
+
 // ####################### || Get one user || #######################
   async findOne( idUser:number) {
 

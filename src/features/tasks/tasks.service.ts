@@ -127,24 +127,14 @@ export class TasksService {
   // =========================================
   async findInfoTasks() {
     try {
-      const tasksActives = await this.taskRepository.find({
-        where: {
-          active: true
-        }
-      });
-
-      const tasksInactives = await this.taskRepository.find({
-        where: {
-          active: false
-        }
-      });
-
-      const tasksTotals = await this.taskRepository.find({});
+      const tasksTotals     = await this.taskRepository.count({});
+      const tasksActives    = await this.taskRepository.count({ where: { active: true } });
+      const tasksInactives  = await this.taskRepository.count({ where: { active: false }});
 
       return this.responseServices.success('Tareas cargados correctamente', {
-        actives   : tasksActives.length,
-        inactives : tasksInactives.length,
-        totals    : tasksTotals.length,
+        actives   : tasksActives,
+        inactives : tasksInactives,
+        totals    : tasksTotals,
       }, 202);
 
     } catch (error) {

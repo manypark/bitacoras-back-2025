@@ -30,13 +30,33 @@ export class LogsService {
     }
   }
 
-// =========================================
-// ============== Get all logs =============
-// =========================================
+  // =========================================
+  // ============== Get all logs =============
+  // =========================================
   async findAll() {
     try {
       const logs = await this.logsRepository.find({ where: { active: true } });
       return this.responseServices.success('Bitacoras cargados correctamente', logs, 200);
+    } catch (error) {
+      return this.responseServices.error(error.detail, null, 404);
+    }
+  }
+
+  // =========================================
+  // ============== Get logs info =============
+  // =========================================
+  async findInfoLogs() {
+    try {
+      const logsTotals     = await this.logsRepository.count({});
+      const logsActives    = await this.logsRepository.count({ where: { active: true } });
+      const logsInactives  = await this.logsRepository.count({ where: { active: false }});
+
+      return this.responseServices.success('Bitacoras cargados correctamente', {
+        actives   : logsActives,
+        inactives : logsInactives,
+        totals    : logsTotals,
+      }, 202);
+
     } catch (error) {
       return this.responseServices.error(error.detail, null, 404);
     }
@@ -105,16 +125,20 @@ export class LogsService {
 
       const logs = await query.getMany();
 
-      return this.responseServices.success('Bitácoras cargadas correctamente', logs, 200);
+      // 🔹 Limpieza de rutas de imagen
+      const cleanUrl = (url?: string | null) => url ? url.replace(/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') : null;
+
+      const sanitizedLogs = logs.map((log) => ({ ...log, image_url: cleanUrl(log.image_url) }));
+
+      return this.responseServices.success('Bitácoras cargadas correctamente', sanitizedLogs, 200);
     } catch (error) {
       console.error(error);
       return this.responseServices.error(error.detail ?? 'Error al cargar bitácoras', null, 500);
     }
   }
 
-
 // =========================================
-// ============== Update Task ==============
+// ============== Update Log ==============
 // =========================================
   async update( idLog:number, updateLogDto:UpdateLogDto ) {
 

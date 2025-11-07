@@ -22,6 +22,7 @@ export class TasksController {
     return this.tasksService.findAll( paginationDto, usersFilters );
   }
 
+  @Auth( ValidRoles.admin, ValidRoles.supervisor )
   @Get('/info')
   findInfoTasks() {
     return this.tasksService.findInfoTasks();

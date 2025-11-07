@@ -23,6 +23,12 @@ export class LogsController {
   }
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
+  @Get('/info')
+  findInfoLogs() {
+    return this.logsService.findInfoLogs();
+  }
+
+  @Auth( ValidRoles.admin, ValidRoles.supervisor )
   @Get('by-user')
   findOne( @Query() filter: LogsFilterDto ) {
     return this.logsService.getLogsByUserAndFilters( filter );
