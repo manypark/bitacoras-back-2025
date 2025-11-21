@@ -37,5 +37,4 @@ export class Logs extends CreateAndUpdateAt {
   @ManyToOne(() => Concept, (concept) => concept.logs)
   @JoinColumn({name:'idConcept'})
   idConcept:Concept;
-
 }

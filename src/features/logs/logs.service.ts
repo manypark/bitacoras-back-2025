@@ -172,4 +172,43 @@ export class LogsService {
       return this.responseServices.error(error.detail, null, 500);
     }
   }
+
+  // =========================================
+  // ============== Logs for user ============
+  // =========================================
+  async getDriverPerformance( filters:LogsFilterDto ) {
+    try {
+      const { idUserAssigned, startDate } = filters;
+
+      const qb = this.logsRepository
+        .createQueryBuilder('logs')
+        .leftJoin('logs.idUser', 'user')
+        .select('user.idUser', 'userId')
+        .addSelect("CONCAT(user.firstName, ' ', COALESCE(user.lastName, ''))", 'name')
+        .addSelect('COUNT(logs.idLogs)', 'total')
+        .where('logs.active = :active', { active: true })
+        .groupBy('user.idUser')
+        .orderBy('total', 'DESC');
+
+      if ( Array.isArray(idUserAssigned) && idUserAssigned.length > 0 && !idUserAssigned.includes(0) ) {
+        qb.andWhere('logs."idUser" IN (:...idUserAssigned)', { idUserAssigned });
+      }
+
+      if (startDate) {
+        const normalizedDate = `${startDate}T23:59:59`;
+        qb.andWhere(`DATE(logs."createdAt") = :normalizedDate`, { normalizedDate });
+      }
+
+      const raw = (await qb.getRawMany()).map(r => ({
+        userId: Number(r.userId),
+        name  : String(r.name ?? `Usuario ${r.userId}`),
+        total : Number(r.total),
+      }));
+
+      return this.responseServices.success('Bitacoras por usuario cargados correctamente', raw, 202);
+    } catch (error) {
+      console.error(error);
+      return this.responseServices.error(error.detail ?? 'Error al cargar bitácoras', null, 500);
+    }
+  }
 }
