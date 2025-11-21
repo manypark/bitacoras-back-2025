@@ -211,4 +211,39 @@ export class LogsService {
       return this.responseServices.error(error.detail ?? 'Error al cargar bitácoras', null, 500);
     }
   }
+
+  // =========================================
+  // ============== Logs by concept ==========
+  // =========================================
+  async getLogsByConcept({idConcepts = []}: LogsFilterDto) {
+    try {
+
+      const qb = this.logsRepository
+        .createQueryBuilder('logs')
+        .leftJoin('logs.idConcept', 'concept')
+        .select('concept.idConcept', 'conceptId')
+        .addSelect('concept.description', 'concept')
+        .addSelect('COUNT(logs.idLogs)', 'total')
+        .where('logs.active = :active', { active: true })
+        .groupBy('concept.idConcept')
+        .orderBy('total', 'DESC');
+
+        if (Array.isArray(idConcepts) && idConcepts.length > 0 && !idConcepts.includes(0)) {
+          qb.andWhere('logs.idConcept IN (:...idConcepts)', { idConcepts });
+        }
+
+      const raw = (await qb.getRawMany()).map(r => ({
+        conceptId : Number(r.conceptId),
+        concept   : String(r.concept ?? 'Concepto'),
+        total     : Number(r.total),
+      }));
+
+      return this.responseServices.success( 'Bitácoras por concepto cargadas correctamente', raw, 200 );
+
+    } catch (error) {
+      console.error(error);
+      return this.responseServices.error( error.detail ?? 'Error al cargar bitácoras por concepto', null, 500);
+    }
+  }
+
 }

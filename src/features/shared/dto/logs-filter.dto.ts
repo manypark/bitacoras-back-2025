@@ -9,6 +9,7 @@ export class LogsFilterDto {
     return [Number(value)];
   })
   @IsArray()
+  @IsOptional()
   idUserAssigned: number[];
 
   @Transform(({ value }) => {

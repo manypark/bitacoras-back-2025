@@ -39,6 +39,12 @@ export class LogsController {
     return this.logsService.getDriverPerformance( filter );
   }
 
+  @Get('analytics/by-concept')
+  getLogsByConcept(@Query() filters: LogsFilterDto) {
+    return this.logsService.getLogsByConcept(filters);
+  }
+
+
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
   @Patch(':id')
   update(@Param('id') id:number, @Body() updateLogDto: UpdateLogDto) {
