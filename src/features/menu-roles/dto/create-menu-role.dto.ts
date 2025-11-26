@@ -1,19 +1,17 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
-import { User } from 'src/features/auth/entities/user.entity';
-import { Menu } from 'src/features/menu/entities/menu.entity';
-import { Role } from 'src/features/roles/entities/role.entity';
+import { IsArray, ArrayNotEmpty, IsInt, IsNotEmpty } from 'class-validator';
 
 export class CreateMenuRoleDto {
-
   @IsInt({ message: 'El idUser debe ser un número entero' })
   @IsNotEmpty({ message: 'El idUser es requerido' })
-  idUser:User;
+  idUser: number;
 
-  @IsInt({ message: 'El idMenu debe ser un número entero' })
-  @IsNotEmpty({ message: 'El idMenu es requerido' })
-  idMenu:Menu;
+  @IsArray({ message: 'idMenu debe ser un arreglo' })
+  @ArrayNotEmpty({ message: 'idMenu no puede estar vacío' })
+  @IsInt({ each: true, message: 'Cada idMenu debe ser un número entero' })
+  idMenu: number[];
 
-  @IsInt({ message: 'El idRoles debe ser un número entero' })
-  @IsNotEmpty({ message: 'El idRoles es requerido' })
-  idRoles:Role;
+  @IsArray({ message: 'idRoles debe ser un arreglo' })
+  @ArrayNotEmpty({ message: 'idRoles no puede estar vacío' })
+  @IsInt({ each: true, message: 'Cada idRoles debe ser un número entero' })
+  idRoles: number[];
 }

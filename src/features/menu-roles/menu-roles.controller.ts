@@ -25,7 +25,7 @@ export class MenuRolesController {
 
   @Patch(':id')
   update(@Param('id') id: number, @Body() updateMenuRoleDto: UpdateMenuRoleDto) {
-    return this.menuRolesService.update(+id, updateMenuRoleDto);
+    return this.menuRolesService.updateByUser(+id, updateMenuRoleDto);
   }
 
   @Delete(':id')

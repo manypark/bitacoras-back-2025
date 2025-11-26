@@ -117,9 +117,9 @@ export class AuthService {
         }
       });
 
-      users.map( user => delete user.menuRoles);
+      const userMapped = users.map( user => UserResponseMapper.userResponseMapper( user ) );
 
-      return this.responseService.success('Usuarios cargados correctamente', users, 200);
+      return this.responseService.success('Usuarios cargados correctamente', userMapped, 200);
     } catch (error) {
       return this.responseService.error(error);
     }
@@ -145,12 +145,8 @@ export class AuthService {
 
 // ####################### || Get one user || #######################
   async findOne( idUser:number) {
-
      try {
-
-      const user = await this.userRepository.findOneBy({ 
-        idUser
-      });
+      const user = await this.userRepository.findOneBy({  idUser });
 
       delete user?.password;
 

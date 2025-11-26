@@ -19,11 +19,29 @@ export class MenuRolesService {
   // Create
   async create(createMenuRolesDto: CreateMenuRoleDto) {
     try {
-      const menuRole = this.menuRolesRepository.create({ ...createMenuRolesDto });
-      await this.menuRolesRepository.save(menuRole);
-      return this.responseServices.success('Permiso menu-rol creado correctamente', menuRole, 201);
+      const { idUser, idMenu, idRoles } = createMenuRolesDto;
+
+      const registros: any[] = [];
+
+      // Crear combinaciones de idMenu × idRoles para ese usuario
+      for (const menuId of idMenu) {
+        for (const roleId of idRoles) {
+          registros.push({
+            idUser,
+            idMenu  : menuId,
+            idRoles : roleId,
+          });
+        }
+      }
+
+      const entities = this.menuRolesRepository.create(registros);
+
+      await this.menuRolesRepository.save(entities);
+
+      return this.responseServices.success( 'Permisos menu-rol creados correctamente', entities, 201 );
     } catch (error) {
-      return this.responseServices.error(`Error creando menu-rol: ${error.detail}`, null, 400);
+      console.error(error);
+      return this.responseServices.error( `Error creando permisos: ${error.detail ?? error.message}`, null, 400 );
     }
   }
 
@@ -51,21 +69,38 @@ export class MenuRolesService {
   }
 
   // Update
-  async update(id: number, updateMenuRolesDto: UpdateMenuRoleDto) {
-    const menuRole = await this.menuRolesRepository.preload({ idMenuRoles: id, ...updateMenuRolesDto });
-    if (!menuRole) return this.responseServices.error('Menu-Rol no encontrado', null, 404);
+  async updateByUser(idUser: number, updateMenuRolesDto: UpdateMenuRoleDto) {
+    const { idMenu, idRoles } = updateMenuRolesDto;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(menuRole);
+      await queryRunner.manager.delete(MenuRoles, { idUser });
+
+      const newPermissions:any[] = [];
+
+      for (const menuId of idMenu!) {
+        for (const roleId of idRoles!) {
+          newPermissions.push({
+            idUser,
+            idMenu: menuId,
+            idRoles: roleId,
+          });
+        }
+      }
+
+      const entry = this.menuRolesRepository.create(newPermissions);
+
+      await queryRunner.manager.save(entry);
+
       await queryRunner.commitTransaction();
-      return this.responseServices.success('Menu-Rol actualizado correctamente', menuRole, 200);
+
+      return this.responseServices.success( 'Permisos actualizados correctamente', newPermissions, 200 );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return this.responseServices.error(error.detail, null, 500);
+      return this.responseServices.error( `Error actualizando permisos: ${error.detail ?? error.message}`, null, 500 );
     } finally {
       await queryRunner.release();
     }
