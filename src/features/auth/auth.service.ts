@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
+import { OnlyUserResponseMapper } from './mappers';
 import { ResponseService } from '../shared/interceptors';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
@@ -102,7 +103,16 @@ export class AuthService {
   }
 
 // ####################### || Get all users || #######################
-  async findAll({ limit = 5, offset = 0 }: PaginationDto, { idUsers = [], idRoles = [] }: UsersFilterDto ) {
+  async finAllUsers() {
+    const users = await this.userRepository.find({});
+
+    const userMapped = users.map( user => OnlyUserResponseMapper.userResponseMapper( user ) );
+
+    return this.responseService.success('Usuario cargado correctamente', userMapped, 202);
+  }
+
+// ####################### || Get all users filtered || #######################
+  async findAllUsersFiltered({ limit = 5, offset = 0 }: PaginationDto, { idUsers = [], idRoles = [] }: UsersFilterDto ) {
     try {
       const parsedLimit = Math.max(1, Number(limit) || 5);
       const parsedPage = Math.max(0, Number(offset) || 0);

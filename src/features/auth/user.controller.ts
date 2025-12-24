@@ -13,8 +13,14 @@ export class UserController {
 
   @Auth()
   @Get()
-  findAll( @Query() paginationDto:PaginationDto, @Query() usersFilters:UsersFilterDto ) {
-    return this.userServices.findAll( paginationDto, usersFilters );
+  findAll() {
+    return this.userServices.finAllUsers();
+  }
+
+  @Auth()
+  @Get('/filtered')
+  findAllUsersFiltered( @Query() paginationDto:PaginationDto, @Query() usersFilters:UsersFilterDto ) {
+    return this.userServices.findAllUsersFiltered( paginationDto, usersFilters );
   }
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
