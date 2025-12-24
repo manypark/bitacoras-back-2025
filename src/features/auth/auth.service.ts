@@ -4,11 +4,11 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
 import { ResponseService } from '../shared/interceptors';
-import { CreateAuthDto, UpdateAuthDto, LoginUserDto } from './dto';
 import { UserResponseMapper } from './mappers/user-response.mapper';
-
+import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -17,8 +17,8 @@ export class AuthService {
     @InjectRepository(User)      
     private readonly userRepository:Repository<User>,
     private readonly responseService:ResponseService,
-    private readonly jwtServices:JwtService,
     private readonly dataSource:DataSource,
+    private readonly jwtServices:JwtService,
   ) {}
   
 // ####################### || User Register || #######################
@@ -102,25 +102,93 @@ export class AuthService {
   }
 
 // ####################### || Get all users || #######################
-  async findAll() {
+  async findAll({ limit = 5, offset = 0 }: PaginationDto, { idUsers = [], idRoles = [] }: UsersFilterDto ) {
     try {
+      const parsedLimit = Math.max(1, Number(limit) || 5);
+      const parsedPage = Math.max(0, Number(offset) || 0);
+      const rowOffset = parsedPage * parsedLimit;
 
-      const users = await this.userRepository.find({
-        where     : { active:true },
-        select    : {
-          idUser:true,
-          firstName:true,
-          lastName:true,
-          email:true,
-          active:true,
-          avatarUrl:true,
-        }
+      const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.menuRoles', 'menuRoles')
+      .leftJoin('menuRoles.idMenu', 'menu')
+      .leftJoin('menuRoles.idRoles', 'roles')
+      .select([
+        'user.idUser',
+        'user.firstName',
+        'user.lastName',
+        'user.email',
+        'user.active',
+        'user.avatarUrl',
+        'user.lastLogin',
+        'user.createdAt',
+        'user.updatedAt',
+        'menuRoles.idMenuRoles',
+        'menu.idMenu',
+        'menu.name',
+        'menu.route',
+        'menu.icon',
+        'roles.idRoles',
+        'roles.name',
+      ])
+      .orderBy('user.idUser', 'DESC')
+      .skip(rowOffset)
+      .take(parsedLimit);
+
+      // Filtro por usuarios
+      if (Array.isArray(idUsers) && idUsers.length > 0 && !idUsers.includes(0)) {
+        query.andWhere('user.idUser IN (:...idUsers)', { idUsers });
+      }
+
+      // Filtro por roles
+      if (Array.isArray(idRoles) && idRoles.length > 0 && !idRoles.includes(0)) {
+        query.andWhere('roles.idRoles IN (:...idRoles)', { idRoles });
+      }
+
+      const users = await query.getMany();
+
+      const response = users.map((user) => {
+        const menuMap = new Map<number, any>();
+        const rolesMap = new Map<number, any>();
+
+        user.menuRoles?.forEach((mr) => {
+          if (mr.idMenu) {
+            menuMap.set(mr.idMenu.idMenu, {
+              idMenu: mr.idMenu.idMenu,
+              name: mr.idMenu.name,
+              route: mr.idMenu.route,
+              icon: mr.idMenu.icon,
+            });
+          }
+
+          if (mr.idRoles) {
+            rolesMap.set(mr.idRoles.idRoles, {
+              idRoles: mr.idRoles.idRoles,
+              name: mr.idRoles.name,
+            });
+          }
+        });
+
+        return {
+          idUser: user.idUser,
+          user: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+          email: user.email,
+          active: user.active,
+          avatarUrl: user.avatarUrl,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          menuList: Array.from(menuMap.values()),
+          rolesList: Array.from(rolesMap.values()),
+        };
       });
 
-      const userMapped = users.map( user => UserResponseMapper.userResponseMapper( user ) );
-
-      return this.responseService.success('Usuarios cargados correctamente', userMapped, 200);
+      return this.responseService.success( 'Usuarios cargados correctamente', response, 200 );
     } catch (error) {
+      console.error(error);
       return this.responseService.error(error);
     }
   }

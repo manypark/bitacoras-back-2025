@@ -1,8 +1,9 @@
-import { Controller, Get, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 
 import { Auth } from './decorators';
-import { UpdateAuthDto } from './dto';
+import { UsersFilterDto } from '../shared';
 import { AuthService } from './auth.service';
+import { PaginationDto, UpdateAuthDto } from './dto';
 import { ValidRoles } from './interfaces/valid-roles';
 
 @Controller('users')
@@ -12,8 +13,8 @@ export class UserController {
 
   @Auth()
   @Get()
-  findAll() {
-    return this.userServices.findAll();
+  findAll( @Query() paginationDto:PaginationDto, @Query() usersFilters:UsersFilterDto ) {
+    return this.userServices.findAll( paginationDto, usersFilters );
   }
 
   @Auth( ValidRoles.admin, ValidRoles.supervisor )
