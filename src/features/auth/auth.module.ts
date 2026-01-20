@@ -10,6 +10,7 @@ import { UserController } from './user.controller';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ResponseService } from '../shared/interceptors';
+import { MenuRolesModule } from '../menu-roles/menu-roles.module';
 
 @Module({
   controllers : [
@@ -33,6 +34,7 @@ import { ResponseService } from '../shared/interceptors';
       })
     }),
     ConfigModule,
+    MenuRolesModule,
   ],
   exports : [ 
     TypeOrmModule, 

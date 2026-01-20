@@ -13,5 +13,6 @@ import { MenuRolesController } from './menu-roles.controller';
     ResponseService,
   ],
   imports     : [ TypeOrmModule.forFeature([MenuRoles]) ],
+  exports     : [ TypeOrmModule, MenuRolesService ],
 })
 export class MenuRolesModule {}

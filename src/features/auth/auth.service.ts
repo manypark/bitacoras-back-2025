@@ -8,8 +8,10 @@ import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
 import { OnlyUserResponseMapper } from './mappers';
 import { ResponseService } from '../shared/interceptors';
+import { MenuRolesService } from '../menu-roles/menu-roles.service';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
+import { CreateMenuRoleDto } from '../menu-roles/dto';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
     private readonly responseService:ResponseService,
     private readonly dataSource:DataSource,
     private readonly jwtServices:JwtService,
+    private readonly menuRolesService: MenuRolesService,
   ) {}
   
 // ####################### || User Register || #######################
@@ -32,6 +35,32 @@ export class AuthService {
 
       return this.responseService.success('Usuario creado correctamente', newUser, 201);
 
+    } catch (error) {
+      return this.responseService.error(error.detail, null, 500);
+    }
+  }
+
+// ####################### || User Register Complete || #######################
+  async signUpComplete( createAuthDto : CreateAuthDto, { idMenu, idRoles } : Omit<CreateMenuRoleDto, "idUser">) {
+    try {
+
+      if( idMenu.length === 0 || idRoles.length === 0 ) {
+        return this.responseService.error('Arrays vacios, es necesario guardar algún menu y rol', {}, 400);
+      }
+
+      const newUser = this.userRepository.create({ ...createAuthDto });
+
+      await this.userRepository.save( newUser );
+      
+      const dataNewUserMenuRoles:CreateMenuRoleDto = {
+        idMenu  : idMenu,
+        idRoles : idRoles,
+        idUser  : newUser.idUser
+      };
+
+      await this.menuRolesService.create(dataNewUserMenuRoles);
+      
+      return this.responseService.success('Usuario creado correctamente', newUser, 201);
     } catch (error) {
       return this.responseService.error(error.detail, null, 500);
     }
