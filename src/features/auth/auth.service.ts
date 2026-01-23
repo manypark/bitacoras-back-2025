@@ -7,11 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
 import { OnlyUserResponseMapper } from './mappers';
+import { CreateMenuRoleDto } from '../menu-roles/dto';
 import { ResponseService } from '../shared/interceptors';
 import { MenuRolesService } from '../menu-roles/menu-roles.service';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
-import { CreateMenuRoleDto } from '../menu-roles/dto';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +28,8 @@ export class AuthService {
 // ####################### || User Register || #######################
   async signUp(createAuthDto: CreateAuthDto) {
     try {
+
+      if(!createAuthDto.avatarUrl) createAuthDto.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
 
       const newUser = this.userRepository.create({ ...createAuthDto });
 
@@ -48,6 +50,8 @@ export class AuthService {
         return this.responseService.error('Arrays vacios, es necesario guardar algún menu y rol', {}, 400);
       }
 
+      if(!createAuthDto.avatarUrl) createAuthDto.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
+
       const newUser = this.userRepository.create({ ...createAuthDto });
 
       await this.userRepository.save( newUser );
@@ -62,6 +66,7 @@ export class AuthService {
       
       return this.responseService.success('Usuario creado correctamente', newUser, 201);
     } catch (error) {
+      console.log(error);
       return this.responseService.error(error.detail, null, 500);
     }
   }
