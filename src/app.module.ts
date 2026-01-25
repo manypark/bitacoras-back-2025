@@ -5,11 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './features/auth/auth.module';
 import { MenuModule } from './features/menu/menu.module';
+import { LogsModule } from './features/logs/logs.module';
 import { RolesModule } from './features/roles/roles.module';
 import { TasksModule } from './features/tasks/tasks.module';
 import { ConceptsModule } from './features/concepts/concepts.module';
-import { MenuRolesModule } from './features/menu-roles/menu-roles.module';
-import { LogsModule } from './features/logs/logs.module';
 
 @Module({
   imports     : [
@@ -22,7 +21,7 @@ import { LogsModule } from './features/logs/logs.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DN_NAME,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
       ssl: true,
       useUTC:true,
       extra: {
@@ -36,7 +35,6 @@ import { LogsModule } from './features/logs/logs.module';
     AuthModule,
     RolesModule,
     MenuModule,
-    MenuRolesModule,
     TasksModule,
     ConceptsModule,
     LogsModule,
