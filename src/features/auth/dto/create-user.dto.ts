@@ -1,4 +1,4 @@
-import { IsBoolean, IsDate, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsArray, IsBoolean, IsDate, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 export class CreateAuthDto {
 
@@ -35,5 +35,8 @@ export class CreateAuthDto {
     @IsString()
     @IsOptional()
     avatarUrl:string;
-    
+
+    @IsOptional()
+    @IsArray()
+    idRoles?: number[];
 }

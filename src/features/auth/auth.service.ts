@@ -1,15 +1,14 @@
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
 import { OnlyUserResponseMapper } from './mappers';
-import { CreateMenuRoleDto } from '../menu-roles/dto';
+import { Role } from '../roles/entities/role.entity';
 import { ResponseService } from '../shared/interceptors';
-import { MenuRolesService } from '../menu-roles/menu-roles.service';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
 
@@ -18,11 +17,12 @@ export class AuthService {
 
   constructor(
     @InjectRepository(User)      
-    private readonly userRepository:Repository<User>,
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private readonly responseService:ResponseService,
     private readonly dataSource:DataSource,
     private readonly jwtServices:JwtService,
-    private readonly menuRolesService: MenuRolesService,
   ) {}
   
 // ####################### || User Register || #######################
@@ -43,26 +43,18 @@ export class AuthService {
   }
 
 // ####################### || User Register Complete || #######################
-  async signUpComplete( createAuthDto : CreateAuthDto, { idMenu, idRoles } : Omit<CreateMenuRoleDto, "idUser">) {
+  async signUpComplete( createAuthDto : CreateAuthDto, idRoles:number[] ) {
     try {
-
-      if( idMenu.length === 0 || idRoles.length === 0 ) {
-        return this.responseService.error('Arrays vacios, es necesario guardar algún menu y rol', {}, 400);
-      }
 
       if(!createAuthDto.avatarUrl) createAuthDto.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
 
       const newUser = this.userRepository.create({ ...createAuthDto });
 
       await this.userRepository.save( newUser );
-      
-      const dataNewUserMenuRoles:CreateMenuRoleDto = {
-        idMenu  : idMenu,
-        idRoles : idRoles,
-        idUser  : newUser.idUser
-      };
 
-      await this.menuRolesService.create(dataNewUserMenuRoles);
+      await this.assignRolesToUser( newUser.idUser, idRoles);
+
+      await this.userRepository.save(newUser);
       
       return this.responseService.success('Usuario creado correctamente', newUser, 201);
     } catch (error) {
@@ -146,38 +138,38 @@ export class AuthService {
   }
 
 // ####################### || Get all users filtered || #######################
-  async findAllUsersFiltered({ limit = 5, offset = 0 }: PaginationDto, { idUsers = [], idRoles = [] }: UsersFilterDto ) {
+  async findAllUsersFiltered( { limit = 5, offset = 0 }: PaginationDto, { idUsers = [], idRoles = [] }: UsersFilterDto ) {
     try {
       const parsedLimit = Math.max(1, Number(limit) || 5);
       const parsedPage = Math.max(0, Number(offset) || 0);
       const rowOffset = parsedPage * parsedLimit;
 
       const query = this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.menuRoles', 'menuRoles')
-      .leftJoin('menuRoles.idMenu', 'menu')
-      .leftJoin('menuRoles.idRoles', 'roles')
-      .select([
-        'user.idUser',
-        'user.firstName',
-        'user.lastName',
-        'user.email',
-        'user.active',
-        'user.avatarUrl',
-        'user.lastLogin',
-        'user.createdAt',
-        'user.updatedAt',
-        'menuRoles.idMenuRoles',
-        'menu.idMenu',
-        'menu.name',
-        'menu.route',
-        'menu.icon',
-        'roles.idRoles',
-        'roles.name',
-      ])
-      .orderBy('user.idUser', 'DESC')
-      .skip(rowOffset)
-      .take(parsedLimit);
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.roles', 'roles')
+        .leftJoinAndSelect('roles.menus', 'menus')
+        .select([
+          'user.idUser',
+          'user.firstName',
+          'user.lastName',
+          'user.email',
+          'user.active',
+          'user.avatarUrl',
+          'user.lastLogin',
+          'user.createdAt',
+          'user.updatedAt',
+
+          'roles.idRoles',
+          'roles.name',
+
+          'menus.idMenu',
+          'menus.name',
+          'menus.route',
+          'menus.icon',
+        ])
+        .orderBy('user.idUser', 'DESC')
+        .skip(rowOffset)
+        .take(parsedLimit);
 
       // Filtro por usuarios
       if (Array.isArray(idUsers) && idUsers.length > 0 && !idUsers.includes(0)) {
@@ -192,26 +184,23 @@ export class AuthService {
       const users = await query.getMany();
 
       const response = users.map((user) => {
-        const menuMap = new Map<number, any>();
-        const rolesMap = new Map<number, any>();
 
-        user.menuRoles?.forEach((mr) => {
-          if (mr.idMenu) {
-            menuMap.set(mr.idMenu.idMenu, {
-              idMenu: mr.idMenu.idMenu,
-              name: mr.idMenu.name,
-              route: mr.idMenu.route,
-              icon: mr.idMenu.icon,
-            });
-          }
+      const menusMap = new Map<number, any>();
 
-          if (mr.idRoles) {
-            rolesMap.set(mr.idRoles.idRoles, {
-              idRoles: mr.idRoles.idRoles,
-              name: mr.idRoles.name,
+      const rolesList = user.roles.map((role) => {
+        role.menus?.forEach((menu) => {
+          if (!menusMap.has(menu.idMenu)) {
+            menusMap.set(menu.idMenu, {
+              idMenu: menu.idMenu,
+              name: menu.name,
+              route: menu.route,
+              icon: menu.icon,
             });
           }
         });
+
+        return { idRoles: role.idRoles, name: role.name };
+      });
 
         return {
           idUser: user.idUser,
@@ -225,8 +214,8 @@ export class AuthService {
           lastLogin: user.lastLogin,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
-          menuList: Array.from(menuMap.values()),
-          rolesList: Array.from(rolesMap.values()),
+          rolesList,
+          menusList: Array.from(menusMap.values()),
         };
       });
 
@@ -290,6 +279,8 @@ export class AuthService {
       await queryRunner.commitTransaction();
 
       delete user.password;
+
+      await this.assignRolesToUser( user.idUser, updateUser.idRoles ?? [] );
       
       return this.responseService.success('Usuario actualizado correctamente', user, 202);
       
@@ -302,11 +293,47 @@ export class AuthService {
       await queryRunner.release();
     }
   }
+  
+// ####################### || Update user || #######################
+  async assignRolesToUser(idUser: number, idRoles: number[]) {
+    try {
+
+      if (!idRoles || idRoles.length === 0) {
+        return this.responseService.error('Agrega roles para asignar', null, 400);
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { idUser },
+        relations: ['roles'],
+      });
+
+      if (!user) throw new NotFoundException('Usuario no encontrado');
+
+      const roles = await this.roleRepository.findBy({
+        idRoles: In(idRoles),
+      });
+
+      if (roles.length === 0) return this.responseService.error('Roles no válidos', null, 400);
+
+      const existingRoleIds = new Set(user.roles?.map(r => r.idRoles));
+
+      const newRoles = roles.filter(r => !existingRoleIds.has(r.idRoles));
+
+      user.roles = [...(user.roles || []), ...newRoles];
+
+      await this.userRepository.save(user);
+
+      return this.responseService.success( 'Rol(es) asignados correctamente al usuario', null, 200,);
+    } catch (error) {
+      console.log(error);
+      return this.responseService.error(error.detail ?? 'Error interno', null, 500);
+    }
+  }
 
 // ####################### || Delete user || #######################  
   async remove(id: number) {
     try {
-      await this.update(id, { active : false } );
+      await this.update( id, { active : false } );
       return this.responseService.success('Usuario eliminado correctamente', null, 202);
     } catch (error) {
       return this.responseService.error(error.detail, null, 500);

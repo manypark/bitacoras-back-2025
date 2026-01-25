@@ -35,7 +35,6 @@ export class UserController {
     return this.userServices.findOne(id);
   }
 
-  @Auth( ValidRoles.admin )
   @Patch(':id')
   update( 
     @Param('id') id : number, 

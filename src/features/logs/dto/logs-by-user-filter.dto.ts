@@ -4,9 +4,9 @@ import { IsArray, IsDateString, IsOptional } from 'class-validator';
 export class LogsFilterDto {
   @IsOptional()
   @IsArray()
-  userIds?: number[];   // ej: [1, 3, 8]
+  userIds?: number[];
 
   @IsOptional()
   @IsDateString()
-  date?: string;        // ej: "2025-02-14"
+  date?: string;
 }

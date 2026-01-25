@@ -13,5 +13,6 @@ import { ResponseService } from '../shared/interceptors';
     ResponseService,
   ],
   imports     : [ TypeOrmModule.forFeature([Menu]) ],
+  exports     : [TypeOrmModule, MenuService ]
 })
 export class MenuModule {}

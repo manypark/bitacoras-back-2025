@@ -1,5 +1,6 @@
-import { MenuRoles } from "src/features/menu-roles/entities/menu-role.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { User } from "src/features/auth/entities/user.entity";
+import { Menu } from "src/features/menu/entities/menu.entity";
+import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Role {
@@ -13,7 +14,20 @@ export class Role {
     @Column('bool', { default:true })
     active:boolean;
 
-    @OneToMany(() => MenuRoles, (menuRoles) => menuRoles.idRoles)
-    menuRoles: MenuRoles[];
+    @ManyToMany(() => User, (user) => user.roles)
+    users: User[];
 
+    @ManyToMany(() => Menu, (menu) => menu.roles, { eager: true })
+    @JoinTable({
+        name: 'role_menus',
+        joinColumn: {
+            name: 'idRole',
+            referencedColumnName: 'idRoles',
+        },
+        inverseJoinColumn: {
+            name: 'idMenu',
+            referencedColumnName: 'idMenu',
+        },
+    })
+    menus: Menu[];
 }

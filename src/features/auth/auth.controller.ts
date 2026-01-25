@@ -2,7 +2,6 @@ import { Controller, Post, Body } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { CreateAuthDto, LoginUserDto } from './dto';
-import { CreateMenuRoleDto } from '../menu-roles/dto';
 
 @Controller('auth')
 export class AuthController {
@@ -15,8 +14,8 @@ export class AuthController {
   }
 
   @Post('singUpComplete')
-  signUpComplete(@Body() createAuthDto: CreateAuthDto, @Body() createMenuRoleDto : Omit<CreateMenuRoleDto, "idUser"> ) {
-    return this.authService.signUpComplete(createAuthDto, createMenuRoleDto);
+  signUpComplete(@Body() createAuthDto: CreateAuthDto, @Body() idRoles:number[] ) {
+    return this.authService.signUpComplete(createAuthDto, idRoles);
   }
 
   @Post('singIn')

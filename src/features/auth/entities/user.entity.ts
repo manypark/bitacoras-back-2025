@@ -1,10 +1,10 @@
 import * as bcrypt from 'bcrypt';
-import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 import { CreateAndUpdateAt } from "../../../features/shared";
+import { Role } from 'src/features/roles/entities/role.entity';
 import { Logs } from '../../../features/logs/entities/logs.entity';
 import { Task } from '../../../features/tasks/entities/task.entity';
-import { MenuRoles } from '../../../features/menu-roles/entities/menu-role.entity';
 
 @Entity()
 export class User extends CreateAndUpdateAt {
@@ -33,12 +33,22 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { default: '' } )
     avatarUrl?:string;
 
-    @OneToMany(
-        () => MenuRoles,
-        (menuRol) => menuRol.idUser,
-        { eager:true }
-    )
-    menuRoles?:MenuRoles[];
+    /*
+    * 🔹 USER ↔ ROLE
+    */
+    @ManyToMany(() => Role, (role) => role.users, { eager: true })
+    @JoinTable({
+        name: 'user_roles',
+        joinColumn: {
+            name: 'idUser',
+            referencedColumnName: 'idUser',
+        },
+        inverseJoinColumn: {
+            name: 'idRole',
+            referencedColumnName: 'idRoles',
+        },
+    })
+    roles: Role[];
 
     @OneToMany(
         () => Logs,

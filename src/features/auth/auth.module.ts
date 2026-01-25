@@ -8,9 +8,9 @@ import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
 import { UserController } from './user.controller';
 import { AuthController } from './auth.controller';
+import { RolesModule } from '../roles/roles.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ResponseService } from '../shared/interceptors';
-import { MenuRolesModule } from '../menu-roles/menu-roles.module';
 
 @Module({
   controllers : [
@@ -24,6 +24,7 @@ import { MenuRolesModule } from '../menu-roles/menu-roles.module';
   ],
   imports     : [
     TypeOrmModule.forFeature([ User ]),
+    RolesModule,
     PassportModule.register( { defaultStrategy: 'jwt' } ),
     JwtModule.registerAsync({
       imports   : [ ConfigModule ],
@@ -34,7 +35,6 @@ import { MenuRolesModule } from '../menu-roles/menu-roles.module';
       })
     }),
     ConfigModule,
-    MenuRolesModule,
   ],
   exports : [ 
     TypeOrmModule, 

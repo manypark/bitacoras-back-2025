@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Role } from './entities/role.entity';
 import { PaginationDto } from '../shared/dto';
+import { Menu } from '../menu/entities/menu.entity';
 import { CreateRoleDto, UpdateRoleDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
 
@@ -13,21 +14,64 @@ export class RolesService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository   : Repository<Role>,
+    @InjectRepository(Menu)
+    private readonly menuRepository   : Repository<Menu>,
     private readonly responseServices : ResponseService,
     private readonly dataSource       : DataSource,
   ) {}
 
-// ####################### || Create Rol || #######################
-  async create( createRoleDto : CreateRoleDto ) {
+  // ####################### || Create Rol || #######################
+  async create(createRoleDto: CreateRoleDto) {
     try {
-        const role = this.roleRepository.create({ ...createRoleDto });
 
-        await this.roleRepository.save(role);
+      if (!createRoleDto.idMenus || createRoleDto.idMenus.length === 0) {
+        return this.responseServices.error('Agrega menus para asignar', null, 501);
+      }
 
-        return this.responseServices.success('Rol creado correctamente', role, 201);
+      const role = this.roleRepository.create({
+        name  : createRoleDto.name,
+        active: createRoleDto.active
+      });
+
+      await this.roleRepository.save(role);
+
+      await this.assignMenusToRole(role.idRoles, createRoleDto.idMenus);
+
+      return this.responseServices.success('Rol creado correctamente', role, 201);
 
     } catch (error) {
       return this.responseServices.error(`El rol no se pudo crear: ${error.detail}`, null, 400);
+    }
+  }
+
+  // ####################### || Asifgnarm menu a  Rol || #######################
+  async assignMenusToRole(idRole: number, idMenus: number[]) {
+    try {
+
+      if (!idMenus || idMenus.length === 0) {
+        return this.responseServices.error('Agrega menus para asignar', null, 501);
+      }
+
+      const role = await this.roleRepository.findOne({
+        where: { idRoles: idRole },
+        relations: ['menus'],
+      });
+
+      if (!role) throw new NotFoundException('Rol no encontrado');
+
+      const menus = await this.menuRepository.findBy({
+        idMenu: In(idMenus),
+      });
+
+      role.menus = menus;
+
+      await this.roleRepository.save(role);
+
+      return this.responseServices.success('Menu(s) asignados al rol correctamente', null, 202);
+
+    } catch (error) {
+      console.log(error);
+      return this.responseServices.error(error.detail, null, 501);
     }
   }
 
@@ -106,6 +150,12 @@ export class RolesService {
       
       await queryRunner.manager.save(role);
       await queryRunner.commitTransaction();
+
+      if (!updateRoleDto.idMenus || updateRoleDto.idMenus.length === 0) {
+        return this.responseServices.error('Agrega menus para asignar', null, 501);
+      }
+
+      await this.assignMenusToRole(role.idRoles, updateRoleDto.idMenus!);
 
       return this.responseServices.success('Rol actualizado correctamente', role, 202);
 

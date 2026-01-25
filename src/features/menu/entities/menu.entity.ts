@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 
-import { MenuRoles } from 'src/features/menu-roles/entities/menu-role.entity';
+import { Role } from 'src/features/roles/entities/role.entity';
 
 @Entity()
 export class Menu {
@@ -19,6 +19,6 @@ export class Menu {
   @Column({ default: true })
   active: boolean;
 
-  @OneToMany(() => MenuRoles, (menuRoles) => menuRoles.idMenu)
-  menuRoles: MenuRoles[];
+  @ManyToMany(() => Role, (role) => role.menus)
+  roles: Role[];
 }
