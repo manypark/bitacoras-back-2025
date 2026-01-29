@@ -21,7 +21,7 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { unique:true })
     email:string;
 
-    @Column('text', { unique:true })
+    @Column('text')
     password?:string;
 
     @Column('bool', { default:true })

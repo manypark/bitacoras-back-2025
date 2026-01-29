@@ -298,10 +298,7 @@ export class AuthService {
           .execute();
 
         if (updateUser.idRoles.length > 0) {
-          const values = updateUser.idRoles.map((idRole) => ({
-            idUser,
-            idRole,
-          }));
+          const values = updateUser.idRoles.map((idRole) => ({ idUser, idRole, }));
 
           await queryRunner.manager
             .createQueryBuilder()
