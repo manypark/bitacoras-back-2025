@@ -24,7 +24,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     async validate( data : any ) {
 
-        const user = await this.userRepository.findOneBy({ email: data.email });
+        const user = await this.userRepository.findOne({
+            where       : { email: data.email, active: true },
+            relations   : {
+                roles   : { menus: true },
+            },
+        });
         
         if( !user ) throw new CustomUnauthorizedException('El token no es válido', 401);
         

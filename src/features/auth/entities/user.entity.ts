@@ -33,10 +33,7 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { default: '' } )
     avatarUrl?:string;
 
-    /*
-    * 🔹 USER ↔ ROLE
-    */
-    @ManyToMany(() => Role, (role) => role.users, { eager: true })
+    @ManyToMany(() => Role, (role) => role.users)
     @JoinTable({
         name: 'user_roles',
         joinColumn: {

@@ -68,7 +68,12 @@ export class AuthService {
 
     try {
       
-      const loginUser = await this.userRepository.findOne({ where : { email, active:true } });
+      const loginUser = await this.userRepository.findOne({
+        where: { email, active: true },
+        relations: {
+          roles: { menus: true },
+        },
+      });
   
       if( !loginUser ) return this.responseService.error('Usuario no encontrado o desactivado', null, 404);
   
@@ -81,15 +86,12 @@ export class AuthService {
         token: this.getJwtToken( loginUser.email ),
         ...userResponse,
       };
-      
-      await this.update( loginUser.idUser, { lastLogin: new Date() } );
   
       return this.responseService.success('Usuario loguedo correctamente', data, 202);
 
     } catch (error) {
       return this.responseService.error(error, null, 500);
     }
-
   }
 
   // ================================================
@@ -247,7 +249,14 @@ export class AuthService {
 // ####################### || Get one user || #######################
   async findOne( idUser:number) {
      try {
-      const user = await this.userRepository.findOneBy({  idUser });
+      const user = await this.userRepository.findOne({
+        where: { idUser, active: true },
+        relations: {
+          roles: {
+            menus: true,
+          },
+        },
+      })
 
       delete user?.password;
 
@@ -263,11 +272,7 @@ export class AuthService {
   }
 
 // ####################### || Update one user || #######################
-  async update( idUser : number, updateUser : UpdateAuthDto ) {
-
-    const user = await this.userRepository.preload({ idUser:idUser, ...updateUser });
-
-    if( !user ) return this.responseService.error('Usuario no encontrado');
+  async update(idUser: number, updateUser: UpdateAuthDto) {
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -275,26 +280,52 @@ export class AuthService {
 
     try {
 
-      await queryRunner.manager.save(user);
+      await queryRunner.manager.update(User, idUser, {
+        firstName : updateUser.firstName,
+        lastName  : updateUser.lastName,
+        email     : updateUser.email,
+        active    : updateUser.active,
+        avatarUrl : updateUser.avatarUrl,
+        password  : updateUser.password,
+      });
+
+      if (updateUser.idRoles) {
+        await queryRunner.manager
+          .createQueryBuilder()
+          .delete()
+          .from('user_roles')
+          .where('idUser = :idUser', { idUser })
+          .execute();
+
+        if (updateUser.idRoles.length > 0) {
+          const values = updateUser.idRoles.map((idRole) => ({
+            idUser,
+            idRole,
+          }));
+
+          await queryRunner.manager
+            .createQueryBuilder()
+            .insert()
+            .into('user_roles')
+            .values(values)
+            .execute();
+        }
+      }
+
       await queryRunner.commitTransaction();
 
-      delete user.password;
+      return this.responseService.success( 'Usuario actualizado correctamente', null, 202);
 
-      await this.assignRolesToUser( user.idUser, updateUser.idRoles ?? [] );
-      
-      return this.responseService.success('Usuario actualizado correctamente', user, 202);
-      
     } catch (error) {
-      
+      console.log(error);
       await queryRunner.rollbackTransaction();
-      return this.responseService.error(error.detail, null, 500);
-
+      return this.responseService.error( error.detail ?? 'Error interno', null, 500);
     } finally {
       await queryRunner.release();
     }
   }
-  
-// ####################### || Update user || #######################
+
+// ####################### || assign rol to user || #######################
   async assignRolesToUser(idUser: number, idRoles: number[]) {
     try {
 
@@ -304,7 +335,7 @@ export class AuthService {
 
       const user = await this.userRepository.findOne({
         where: { idUser },
-        relations: ['roles'],
+        relations: ['roles', 'roles.menus'],
       });
 
       if (!user) throw new NotFoundException('Usuario no encontrado');
@@ -313,13 +344,11 @@ export class AuthService {
         idRoles: In(idRoles),
       });
 
-      if (roles.length === 0) return this.responseService.error('Roles no válidos', null, 400);
+       if (roles.length !== idRoles.length) {
+        return this.responseService.error('Uno o más roles no existen', null, 400);
+      }
 
-      const existingRoleIds = new Set(user.roles?.map(r => r.idRoles));
-
-      const newRoles = roles.filter(r => !existingRoleIds.has(r.idRoles));
-
-      user.roles = [...(user.roles || []), ...newRoles];
+      user.roles = roles;
 
       await this.userRepository.save(user);
 

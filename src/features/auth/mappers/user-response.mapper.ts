@@ -2,8 +2,7 @@ import { User } from "../entities/user.entity";
 
 export class UserResponseMapper {
 
-    static cleanUrl = (url?: string | null) =>
-        url ? url.replace(/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') : '';
+    static cleanUrl = (url?: string | null) => url ? url.replace(/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') : '';
 
     static userResponseMapper = (user: User) => {
 

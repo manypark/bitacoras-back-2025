@@ -17,7 +17,7 @@ export class Role {
     @ManyToMany(() => User, (user) => user.roles)
     users: User[];
 
-    @ManyToMany(() => Menu, (menu) => menu.roles, { eager: true })
+    @ManyToMany(() => Menu, (menu) => menu.roles)
     @JoinTable({
         name: 'role_menus',
         joinColumn: {
