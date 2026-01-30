@@ -250,7 +250,7 @@ export class AuthService {
   async findOne( idUser:number) {
      try {
       const user = await this.userRepository.findOne({
-        where: { idUser, active: true },
+        where: { idUser },
         relations: {
           roles: {
             menus: true,
@@ -274,11 +274,16 @@ export class AuthService {
 // ####################### || Update one user || #######################
   async update(idUser: number, updateUser: UpdateAuthDto) {
 
+    if(!updateUser.avatarUrl) updateUser.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+
+      if (updateUser.password) updateUser.password = await bcrypt.hash(updateUser.password, 10);
+      updateUser.email = updateUser.email?.toLocaleLowerCase();
 
       await queryRunner.manager.update(User, idUser, {
         firstName : updateUser.firstName,

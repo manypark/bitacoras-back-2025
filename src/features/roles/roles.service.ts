@@ -84,6 +84,9 @@ export class RolesService {
         order: {
             idRoles: "ASC",
         },
+        relations: {
+          menus: true
+        }
       });
 
       return this.responseServices.success('Roles cargados correctamente', roles, 202);

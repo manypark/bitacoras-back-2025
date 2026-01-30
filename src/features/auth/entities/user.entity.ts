@@ -1,5 +1,4 @@
-import * as bcrypt from 'bcrypt';
-import { BeforeInsert, BeforeUpdate, Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 import { CreateAndUpdateAt } from "../../../features/shared";
 import { Role } from 'src/features/roles/entities/role.entity';
@@ -58,24 +57,4 @@ export class User extends CreateAndUpdateAt {
 
     @OneToMany(() => Task, (task) => task.userAssigned)
     tasksAssigned: Task[];
-
-    @BeforeInsert()
-    setLastLogin() {
-        this.lastLogin = new Date();
-    }
-    
-    @BeforeInsert()
-    @BeforeUpdate()
-    checkFieldsBeforeUpdate() {
-        this.email = this.email.toLowerCase().trim();
-    }
-
-    @BeforeInsert()
-    @BeforeUpdate()
-    async hashPassword() {
-        if (this.password && !this.password.startsWith('$2b$')) {
-            this.password = await bcrypt.hash(this.password, 10);
-        }
-    }
-    
 }
