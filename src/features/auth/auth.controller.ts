@@ -14,8 +14,8 @@ export class AuthController {
   }
 
   @Post('singUpComplete')
-  signUpComplete(@Body() createAuthDto: CreateAuthDto, @Body() idRoles:number[] ) {
-    return this.authService.signUpComplete(createAuthDto, idRoles);
+  signUpComplete( @Body() createAuthDto: CreateAuthDto ) {
+    return this.authService.signUpComplete( createAuthDto );
   }
 
   @Post('singIn')

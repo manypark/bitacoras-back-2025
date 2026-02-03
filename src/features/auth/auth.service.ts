@@ -1,8 +1,8 @@
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
@@ -43,23 +43,56 @@ export class AuthService {
   }
 
 // ####################### || User Register Complete || #######################
-  async signUpComplete( createAuthDto : CreateAuthDto, idRoles:number[] ) {
+  async signUpComplete( createAuthDto : CreateAuthDto ) {
+
+    if (!createAuthDto.avatarUrl)
+      createAuthDto.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
+
+    if (!createAuthDto.active)
+      createAuthDto.active = true;
+
+    if (!createAuthDto.lastLogin)
+      createAuthDto.lastLogin = new Date();
+
+    if (createAuthDto.password)
+      createAuthDto.password = await bcrypt.hash(createAuthDto.password, 10);
+
+    createAuthDto.email = createAuthDto.email.toLowerCase();
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
+      const newUser = await queryRunner.manager.save(
+        this.userRepository.create(createAuthDto)
+      );
 
-      if(!createAuthDto.avatarUrl) createAuthDto.avatarUrl = process.env.AVATAR_URL_PROFILE ?? '';
+      const { idRoles } = createAuthDto;
+      if ( idRoles && idRoles.length > 0) {
+        const values = idRoles.map((idRole) => ({
+          idUser: newUser.idUser,
+          idRole,
+        }));
 
-      const newUser = this.userRepository.create({ ...createAuthDto });
+        await queryRunner.manager
+          .createQueryBuilder()
+          .insert()
+          .into('user_roles')
+          .values(values)
+          .execute();
+      }
 
-      await this.userRepository.save( newUser );
+      await queryRunner.commitTransaction();
 
-      await this.assignRolesToUser( newUser.idUser, idRoles);
+      return this.responseService.success( 'Usuario creado correctamente', newUser, 201);
 
-      await this.userRepository.save(newUser);
-      
-      return this.responseService.success('Usuario creado correctamente', newUser, 201);
     } catch (error) {
       console.log(error);
-      return this.responseService.error(error.detail, null, 500);
+      await queryRunner.rollbackTransaction();
+      return this.responseService.error( error.detail ?? 'Error interno', null, 500);
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -324,40 +357,6 @@ export class AuthService {
       return this.responseService.error( error.detail ?? 'Error interno', null, 500);
     } finally {
       await queryRunner.release();
-    }
-  }
-
-// ####################### || assign rol to user || #######################
-  async assignRolesToUser(idUser: number, idRoles: number[]) {
-    try {
-
-      if (!idRoles || idRoles.length === 0) {
-        return this.responseService.error('Agrega roles para asignar', null, 400);
-      }
-
-      const user = await this.userRepository.findOne({
-        where: { idUser },
-        relations: ['roles', 'roles.menus'],
-      });
-
-      if (!user) throw new NotFoundException('Usuario no encontrado');
-
-      const roles = await this.roleRepository.findBy({
-        idRoles: In(idRoles),
-      });
-
-       if (roles.length !== idRoles.length) {
-        return this.responseService.error('Uno o más roles no existen', null, 400);
-      }
-
-      user.roles = roles;
-
-      await this.userRepository.save(user);
-
-      return this.responseService.success( 'Rol(es) asignados correctamente al usuario', null, 200,);
-    } catch (error) {
-      console.log(error);
-      return this.responseService.error(error.detail ?? 'Error interno', null, 500);
     }
   }
 
