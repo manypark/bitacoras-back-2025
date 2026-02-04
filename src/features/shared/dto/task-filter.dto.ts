@@ -1,15 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class TaskFilterDto {
   
-  @Transform(({ value }) => {
-    if (typeof value === 'string') return value.split(',').map(Number);
-    if (Array.isArray(value)) return value.map(Number);
-    return [Number(value)];
-  })
-  @IsArray()
-  idUserAssigned: number[];
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  idUserAssigned:number;
 
   @IsOptional()
   @IsString()

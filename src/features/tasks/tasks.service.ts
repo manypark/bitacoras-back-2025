@@ -142,6 +142,45 @@ export class TasksService {
     }
   }
 
+  // =========================================
+  // ======= Find one Task by User ===========
+  // =========================================
+  async getTasksByAssignedUserAndDate({ idUserAssigned, startDate, endDate }: TaskFilterDto) {
+    try {
+      const normalizeDayDate = endDate.split('-');
+      let newDateNormalized = +normalizeDayDate[2] < 10 ? `${normalizeDayDate[0]}-${normalizeDayDate[1]}-0${normalizeDayDate[2]}` : endDate;
+      newDateNormalized += 'T23:59:59';
+
+      const query = this.taskRepository
+        .createQueryBuilder('task')
+        .leftJoinAndSelect('task.userAssigned', 'userAssigned')
+        .leftJoin('task.logs', 'logs') // 👈 Relación con logs
+        .addSelect('COUNT(logs.idLogs)', 'logsCount') // 👈 Contador de logs
+        .where('task.userAssigned = :idUserAssigned', { idUserAssigned })
+        .andWhere('task.createdAt >= :startDate', { startDate })
+        .andWhere('task.createdAt <= :endDate', { endDate: newDateNormalized })
+        .groupBy('task.idTasks') // 👈 Agrupar por ID de tarea
+        .addGroupBy('userAssigned.idUser'); // 👈 Agrupar userAssigned también si se hace join-select
+
+      // 👇 Trae el resultado crudo porque tienes agregados
+      const tasks = await query.getRawAndEntities();
+
+      tasks.entities.map( (ent) => delete ent.userAssigned.password );
+
+      // Los conteos están en .raw y las tareas en .entities
+      const result = tasks.entities.map((task, index) => ({
+        ...task,
+        logsCount: parseInt(tasks.raw[index].logsCount, 10) || 0,
+      }));
+
+      return this.responseServices.success('Tareas cargadas correctamente', result, 200);
+
+    } catch (error) {
+      console.log(error);
+      return this.responseServices.error(error, null, 500);
+    }
+  }
+
 // =========================================
 // ============== Update Task ==============
 // =========================================
