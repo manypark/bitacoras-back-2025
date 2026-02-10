@@ -125,12 +125,7 @@ export class LogsService {
 
       const logs = await query.getMany();
 
-      // 🔹 Limpieza de rutas de imagen
-      const cleanUrl = (url?: string | null) => url ? url.replace(/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') : null;
-
-      const sanitizedLogs = logs.map((log) => ({ ...log, image_url: cleanUrl(log.image_url) }));
-
-      return this.responseServices.success('Bitácoras cargadas correctamente', sanitizedLogs, 200);
+      return this.responseServices.success('Bitácoras cargadas correctamente', logs, 200);
     } catch (error) {
       console.error(error);
       return this.responseServices.error(error.detail ?? 'Error al cargar bitácoras', null, 500);
