@@ -1,5 +1,3 @@
-import { join } from 'path';
-import { readFileSync } from 'fs';
 import { Module, Global } from '@nestjs/common';
 
 import * as admin from 'firebase-admin';
@@ -10,12 +8,12 @@ import * as admin from 'firebase-admin';
     {
       provide: 'FIREBASE_ADMIN',
       useFactory: () => {
-        const serviceAccount = JSON.parse(
-          readFileSync(join(process.cwd(), 'src/config/firebase-adminsdk.json'), 'utf8'),
-        );
-
         return admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
+          credential: admin.credential.cert({
+            projectId   : process.env.FIREBASE_PROJECT_ID,
+            clientEmail : process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey  : process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          }),
         });
       },
     },
