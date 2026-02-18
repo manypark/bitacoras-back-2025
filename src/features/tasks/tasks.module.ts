@@ -6,10 +6,18 @@ import { TasksService } from './tasks.service';
 import { AuthModule } from '../auth/auth.module';
 import { TasksController } from './tasks.controller';
 import { ResponseService } from '../shared/interceptors';
+import { NotificationsService } from '../firebase/firebase.service';
 
 @Module({
   controllers : [ TasksController ],
-  providers   : [ TasksService, ResponseService, ],
-  imports     : [ TypeOrmModule.forFeature([Task]), AuthModule ],
+  providers   : [ 
+    TasksService, 
+    ResponseService,
+    NotificationsService,
+  ],
+  imports     : [ 
+    TypeOrmModule.forFeature([Task]), 
+    AuthModule,
+   ],
 })
 export class TasksModule {}

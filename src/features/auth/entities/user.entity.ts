@@ -32,6 +32,9 @@ export class User extends CreateAndUpdateAt {
     @Column('text', { default: '' } )
     avatarUrl?:string;
 
+    @Column('text')
+    fcmToken?: string;
+
     @ManyToMany(() => Role, (role) => role.users)
     @JoinTable({
         name: 'user_roles',

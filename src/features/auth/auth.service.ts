@@ -7,7 +7,6 @@ import { DataSource, Repository } from 'typeorm';
 import { UsersFilterDto } from '../shared';
 import { User } from './entities/user.entity';
 import { OnlyUserResponseMapper } from './mappers';
-import { Role } from '../roles/entities/role.entity';
 import { ResponseService } from '../shared/interceptors';
 import { UserResponseMapper } from './mappers/user-response.mapper';
 import { CreateAuthDto, UpdateAuthDto, LoginUserDto, PaginationDto } from './dto';
@@ -18,8 +17,6 @@ export class AuthService {
   constructor(
     @InjectRepository(User)      
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
     private readonly responseService:ResponseService,
     private readonly dataSource:DataSource,
     private readonly jwtServices:JwtService,
@@ -97,7 +94,7 @@ export class AuthService {
   }
 
   // ####################### || User Login || #######################
-  async signIn({ email, password } : LoginUserDto) {
+  async signIn({ email, password, fmcToken } : LoginUserDto) {
 
     try {
       
@@ -119,6 +116,8 @@ export class AuthService {
         token: this.getJwtToken( loginUser.email ),
         ...userResponse,
       };
+
+      await this.update( data.idUser, { fmcToken } );
   
       return this.responseService.success('Usuario loguedo correctamente', data, 202);
 
@@ -325,6 +324,7 @@ export class AuthService {
         active    : updateUser.active,
         avatarUrl : updateUser.avatarUrl,
         password  : updateUser.password,
+        fcmToken  : updateUser.fmcToken
       });
 
       if (updateUser.idRoles) {

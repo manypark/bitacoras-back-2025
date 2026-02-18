@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, MaxLength, Matches } from "class-validator";
+import { IsString, IsEmail, MinLength, MaxLength, Matches, IsOptional } from "class-validator";
 
 export class LoginUserDto {
 
@@ -15,4 +15,7 @@ export class LoginUserDto {
     })
     password:string;
 
+    @IsString()
+    @IsOptional()
+    fmcToken?:string;
 }

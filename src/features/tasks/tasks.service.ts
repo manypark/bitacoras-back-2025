@@ -7,6 +7,7 @@ import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { ResponseService } from '../shared/interceptors';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 import { PaginationDto, TaskUsersFilterDto } from '../shared/dto';
+import { NotificationsService } from '../firebase/firebase.service';
 
 @Injectable()
 export class TasksService {
@@ -16,6 +17,7 @@ export class TasksService {
     private readonly taskRepository   : Repository<Task>,
     private readonly responseServices : ResponseService,
     private readonly dataSource       : DataSource,
+    private readonly notificationsService : NotificationsService,
   ) {}
 
 // =========================================
@@ -25,6 +27,15 @@ export class TasksService {
     try {
       const task = this.taskRepository.create({ ...createTaskDto });
       await this.taskRepository.save(task);
+
+      if (createTaskDto.userAssigned.fcmToken) {
+        await this.notificationsService.sendNotification(
+          createTaskDto.userAssigned.fcmToken,
+          'Nueva tarea asignada',
+          'Tienes una nueva tarea pendiente'
+        );
+      }
+
       return this.responseServices.success('Tarea creado correctamente', task, 201);
     } catch (error) {
       return this.responseServices.error(`Error creando la tarea: ${error.detail}`, null, 400);

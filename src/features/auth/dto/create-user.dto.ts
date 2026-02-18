@@ -36,6 +36,10 @@ export class CreateAuthDto {
     @IsOptional()
     avatarUrl:string;
 
+    @IsString()
+    @IsOptional()
+    fmcToken?:string;
+
     @IsOptional()
     @IsArray()
     idRoles?: number[];
