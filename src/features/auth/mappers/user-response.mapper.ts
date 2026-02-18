@@ -44,6 +44,7 @@ export class UserResponseMapper {
             updatedAt: user.updatedAt,
             menuList,
             rolesList,
+            fmcToken: user.fcmToken
         };
     };
 }

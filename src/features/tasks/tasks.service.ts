@@ -8,6 +8,7 @@ import { ResponseService } from '../shared/interceptors';
 import { TaskFilterDto } from '../shared/dto/task-filter.dto';
 import { PaginationDto, TaskUsersFilterDto } from '../shared/dto';
 import { NotificationsService } from '../firebase/firebase.service';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class TasksService {
@@ -18,6 +19,7 @@ export class TasksService {
     private readonly responseServices : ResponseService,
     private readonly dataSource       : DataSource,
     private readonly notificationsService : NotificationsService,
+    private readonly userService : AuthService,
   ) {}
 
 // =========================================
@@ -26,13 +28,18 @@ export class TasksService {
   async create(createTaskDto: CreateTaskDto) {
     try {
       const task = this.taskRepository.create({ ...createTaskDto });
-      await this.taskRepository.save(task);
 
-      if (createTaskDto.userAssigned.fcmToken) {
+      await this.taskRepository.save(task);
+      
+      const idUser:any = createTaskDto.userAssigned;
+
+      const userInfo = await this.userService.findOne(idUser);
+
+      if (userInfo.data.fmcToken) {
         await this.notificationsService.sendNotification(
-          createTaskDto.userAssigned.fcmToken,
+          userInfo.data.fmcToken,
           'Nueva tarea asignada',
-          'Tienes una nueva tarea pendiente'
+          task.title
         );
       }
 
